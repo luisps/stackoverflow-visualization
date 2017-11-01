@@ -1,6 +1,7 @@
 from lxml import etree
 import pymysql
 from datetime import datetime
+import os.path
 
 '''
 A function to loop through a context, calling func each time, and then clean up unneeded references
@@ -46,39 +47,50 @@ CREATE TABLE Posts (
 xml_files = ['Posts.xml', 'Votes.xml', 'Comments.xml', 'test.xml']
 table_names = ['Posts', 'Votes', 'Comments']
 regions = ['pt', 'es', 'en', 'ru', 'ja']
-db_name = 'stackoverflow_'  # region gets appended to the end
 
 #enable these options to recreate the databases or tables
 #can be useful when starting from an empty database
 #or when the schema has changed
-recreate_db = True
+recreate_db = False
 recreate_tables = True
 
 #selected values for this run
 selected_xml_file = 0
 selected_region = 0
 
-xml_file = xml_file[selected_xml_file]
+xml_file = xml_files[selected_xml_file]
 region = regions[selected_region]
+
+#more configurable variables
+db_name_prefix = 'stackoverflow_'  # region gets appended to the end
+
+xml_files_dir = os.path.join('..', region + '.stackoverflow.com')
+#xml_files_dir = '.'  # use this if this script is on the same folder as xml files
 
 #database connector information
 host = '127.0.0.1'
 user = 'root'
 passwd = 'root'
-db = db_name + region
+db_name = db_name_prefix + region
 
 if recreate_db:
+    #creates a different database for each region
     conn = pymysql.connect(host=host, user=user, passwd=passwd)
     cursor = conn.cursor()
 
     for region in regions:
-        db = db_name + region
+        db = db_name_prefix + region
         create_db_query = 'CREATE DATABASE IF NOT EXISTS %s'
-        cursor.execute(create_db_query, (db,))
-        
+        cursor.execute(create_db_query % (db,))
+
+    #use the selected database from now on
+    cursor.execute('USE %s' % (db_name,))
 else:
+    #connect directly to the selected database
     conn = pymysql.connect(host=host, user=user, passwd=passwd, db=db_name)
     cursor = conn.cursor()
+
+exit()
 
 if recreate:
     recreate_tables(cursor)
