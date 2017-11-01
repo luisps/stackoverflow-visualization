@@ -43,20 +43,42 @@ CREATE TABLE Posts (
     cursor.execute(create_table_query)
 
 
-xml_files = ['Posts.xml', 'Votes.xml', 'Comments.xml']
+xml_files = ['Posts.xml', 'Votes.xml', 'Comments.xml', 'test.xml']
 table_names = ['Posts', 'Votes', 'Comments']
+regions = ['pt', 'es', 'en', 'ru', 'ja']
+db_name = 'stackoverflow_'  # region gets appended to the end
 
-xml_file = 'Posts.xml'
-#xml_file = 'test.xml'
-recreate = True
+#enable these options to recreate the databases or tables
+#can be useful when starting from an empty database
+#or when the schema has changed
+recreate_db = True
+recreate_tables = True
 
+#selected values for this run
+selected_xml_file = 0
+selected_region = 0
+
+xml_file = xml_file[selected_xml_file]
+region = regions[selected_region]
+
+#database connector information
 host = '127.0.0.1'
 user = 'root'
 passwd = 'root'
-db_name = 'pt_stackoverflow'
+db = db_name + region
 
-conn = pymysql.connect(host=host, user=user, passwd=passwd, db=db_name)
-cursor = conn.cursor()
+if recreate_db:
+    conn = pymysql.connect(host=host, user=user, passwd=passwd)
+    cursor = conn.cursor()
+
+    for region in regions:
+        db = db_name + region
+        create_db_query = 'CREATE DATABASE IF NOT EXISTS %s'
+        cursor.execute(create_db_query, (db,))
+        
+else:
+    conn = pymysql.connect(host=host, user=user, passwd=passwd, db=db_name)
+    cursor = conn.cursor()
 
 if recreate:
     recreate_tables(cursor)
