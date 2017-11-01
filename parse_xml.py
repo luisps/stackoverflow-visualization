@@ -29,20 +29,6 @@ def row_process(elem, cursor):
     insert_query = 'INSERT INTO Posts (tags) values (%s)'
     cursor.execute(insert_query, (tags,))
 
-def recreate_tables(cursor):
-
-    drop_table_query = 'DROP TABLE IF EXISTS Posts'
-    cursor.execute(drop_table_query)
-
-    create_table_query = '''\
-CREATE TABLE Posts (
-    id MEDIUMINT NOT NULL AUTO_INCREMENT,
-    tags TEXT NOT NULL,
-    PRIMARY KEY (id)
-);\
-    '''
-    cursor.execute(create_table_query)
-
 
 xml_files = ['Posts.xml', 'Votes.xml', 'Comments.xml', 'test.xml']
 table_names = ['Posts', 'Votes', 'Comments']
@@ -74,7 +60,8 @@ passwd = 'root'
 db_name = db_name_prefix + region
 
 if recreate_db:
-    #creates a different database for each region
+    #each region has its own database, the schema should be the same
+    #across the databases/regions
     conn = pymysql.connect(host=host, user=user, passwd=passwd)
     cursor = conn.cursor()
 
@@ -92,8 +79,32 @@ else:
 
 exit()
 
-if recreate:
-    recreate_tables(cursor)
+if recreate_tables:
+    #creating the schema on this script allows us to have a single
+    #place to change whenever the schema changes
+    #it also guarantees the schema is constant across workstations
+    #as long as we update it here
+
+    #schema for Posts
+    drop_table_query = 'DROP TABLE IF EXISTS Posts'
+    cursor.execute(drop_table_query)
+
+    create_table_query = '''\
+CREATE TABLE Posts (
+    id MEDIUMINT NOT NULL AUTO_INCREMENT,
+    tags TEXT NOT NULL,
+    PRIMARY KEY (id)
+);\
+    '''
+    cursor.execute(create_table_query)
+
+    #schema for Votes
+    drop_table_query = 'DROP TABLE IF EXISTS Votes'
+    cursor.execute(drop_table_query)
+
+    #schema for Comments
+    drop_table_query = 'DROP TABLE IF EXISTS Comments'
+    cursor.execute(drop_table_query)
 
 start_time = datetime.now()
 
