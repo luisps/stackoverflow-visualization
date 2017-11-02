@@ -19,10 +19,6 @@ CREATE TABLE Posts (
     cur.execute(create_table_query)
 
 def row_process(elem):
-    #discard posts that aren't questions or answers
-    #if elem.attrib['PostTypeId'] != '1' and elem.attrib['PostTypeId'] != 2:
-    #    return
-
     tags = elem.attrib['Tags'] if elem.attrib['PostTypeId'] == '1' else None
 
     data = (

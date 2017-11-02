@@ -11,5 +11,6 @@ for region in regions:
 
     create_db_query = 'CREATE DATABASE %s'
     cur.execute(create_db_query % (db,))
+    print('Created database', db)
 
 conn.close()
