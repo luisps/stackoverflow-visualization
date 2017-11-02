@@ -7,31 +7,41 @@ def recreate_table(cur):
 
     create_table_query = '''\
 CREATE TABLE Posts (
-    Id MEDIUMINT NOT NULL,
-    PostTypeId TINYINT NOT NULL,
-    CreationDate DATE NOT NULL,
-    OwnerUserId MEDIUMINT,
-    Tags MEDIUMTEXT,
+    Id int8 NOT NULL,
+    PostTypeId int2 NOT NULL,
+    ParentId int8,
+    CreationDate date NOT NULL,
+    OwnerUserId int8,
+    Tags text,
     PRIMARY KEY (Id)
 );\
     '''
     cur.execute(create_table_query)
 
 def row_process(elem):
-    owner_user_id = int(elem.attrib['OwnerUserId']) if 'OwnerUserId' in elem.attrib else None
-    tags = elem.attrib['Tags'] if elem.attrib['PostTypeId'] == '1' else None
-    data = (int(elem.attrib['Id']), int(elem.attrib['PostTypeId']), elem.attrib['CreationDate'][:10], owner_user_id, tags)
+    #discard posts that aren't questions or answers
+    #if elem.attrib['PostTypeId'] != '1' and elem.attrib['PostTypeId'] != 2:
+    #    return
 
-    return cur.mogrify('(%s,%s,%s,%s,%s)', data)
+    tags = elem.attrib['Tags'] if elem.attrib['PostTypeId'] == '1' else None
+
+    data = (
+            int(elem.attrib['Id']),
+            int(elem.attrib['PostTypeId']),
+            int_or_none(elem, 'ParentId'),
+            elem.attrib['CreationDate'][:10],
+            int_or_none(elem, 'OwnerUserId'),
+            tags
+           )
+
+    return cur.mogrify('(%s,%s,%s,%s,%s,%s)', data)
 
 
 recreate = True
 
-conn = pymysql.connect(host=host, user=user, passwd=passwd, db=db_name, charset='utf8')
-cur = conn.cursor()
-
 if recreate:
     recreate_table(cur)
+    conn.commit()
 
 start_time = datetime.now()
 
