@@ -11,6 +11,9 @@ CREATE TABLE Posts (
     PostTypeId int2 NOT NULL,
     ParentId int8,
     CreationDate date NOT NULL,
+    ViewCount int8,
+    AnswerCount int8,
+    CommentCount int8,
     OwnerUserId int8,
     Tags text,
     PRIMARY KEY (Id)
@@ -18,19 +21,32 @@ CREATE TABLE Posts (
     '''
     cur.execute(create_table_query)
 
+def recreate_index(cur):
+
+    drop_index_query = 'DROP INDEX IF EXISTS posts_creationdate_id_idx'
+    cur.execute(drop_index_query)
+
+    create_idex_query = '''
+CREATE INDEX posts_creationdate_id_idx ON public.posts ("creationdate", "id")
+    '''
+    cur.execute(create_idex_query)
+
 def row_process(elem):
-    tags = elem.attrib['Tags'] if elem.attrib['PostTypeId'] == '1' else None
+    tags = elem.attrib['Tags'][1:-1] if elem.attrib['PostTypeId'] == '1' else None
 
     data = (
             int(elem.attrib['Id']),
             int(elem.attrib['PostTypeId']),
             int_or_none(elem, 'ParentId'),
             elem.attrib['CreationDate'][:10],
+            int_or_none(elem, 'ViewCount'),
+            int_or_none(elem, 'AnswerCount'),
+            int(elem.attrib['CommentCount']),
             int_or_none(elem, 'OwnerUserId'),
             tags
            )
 
-    return cur.mogrify('(%s,%s,%s,%s,%s,%s)', data)
+    return cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s)', data)
 
 
 recreate = True
@@ -48,6 +64,11 @@ context = ET.iterparse(xml_file, events=('end',), tag='row')
 fast_iter(context, row_process, conn, cur, insert_query)
 
 conn.commit()
+
+if recreate:
+    recreate_index(cur)
+    conn.commit()
+
 conn.close()
 
 end_time = datetime.now()
