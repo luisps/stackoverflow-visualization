@@ -22,7 +22,7 @@ def recreate_index(cur):
     cur.execute(drop_index_query)
 
     create_idex_query = '''
-CREATE INDEX votes_creationdate_postid_idx ON public.votes ("creationdate", "postid")
+CREATE INDEX votes_creationdate_votetypeid_postid_idx ON public.votes ("creationdate", "votetypeid", "postid")
     '''
     cur.execute(create_idex_query)
 

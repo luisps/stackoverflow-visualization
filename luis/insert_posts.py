@@ -27,7 +27,7 @@ def recreate_index(cur):
     cur.execute(drop_index_query)
 
     create_idex_query = '''
-CREATE INDEX posts_creationdate_id_idx ON public.posts ("creationdate", "id")
+CREATE INDEX posts_creationdate_posttypeid_id_idx ON public.posts ("creationdate", "posttypeid", "id")
     '''
     cur.execute(create_idex_query)
 

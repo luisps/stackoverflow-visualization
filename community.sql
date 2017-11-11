@@ -1,60 +1,44 @@
--- Community :: Posts by CreationDate, PostId (merged Questions and Answers)
--- Note: isto tem de ser feito em dois passos, pois quando há comments/answers num mes/ano diferente do da criação da questão original, as tags ficam a null
-DROP TABLE IF EXISTS tmp_community_posts_by_creationdate_postid;
-CREATE TABLE tmp_community_posts_by_creationdate_postid AS
+-- Community :: Posts by CreationDate, PostId, Tags
+DROP TABLE IF EXISTS community_posts_by_creationdate_postid_tags;
+CREATE TABLE community_posts_by_creationdate_postid_tags AS
     SELECT
-        DATE_PART('YEAR', creationdate)  "year",
-        DATE_PART('MONTH', creationdate) "month",
-        id,
-        SUM(answercount)                 answercount,
-        SUM(commentcount)                commentcount,
-        SUM(questioncount)               questioncount,
-        --SUM(viewcount) viewcount,
-        MAX(tags)                        tags
-    FROM
-        (
-            SELECT
-                creationdate,
-                (CASE WHEN parentid IS NOT NULL
-                    THEN parentid
-                 ELSE id END)             id,
-                COALESCE(answercount, 0)  answercount,
-                COALESCE(commentcount, 0) commentcount,
-                (CASE WHEN posttypeid = 1
-                    THEN 1
-                 ELSE 0 END)              questioncount,
-                --COALESCE(viewcount, 0) viewcount,
-                MAX(tags)                 tags
-            FROM
-                posts
-            WHERE 1 = 1
-                  AND ((posttypeid = 1 AND tags IS NOT NULL) OR posttypeid = 2)
-            GROUP BY
-                creationdate, id
-        ) posts_merged
-    GROUP BY
-        DATE_PART('YEAR', creationdate),
-        DATE_PART('MONTH', creationdate),
-        id
+		"year"							,
+		"month"							,
+		questions_and_answers.postid	postid,
+		COALESCE(SUM(answercount), 0)	answercount,
+		COALESCE(SUM(commentcount), 0)	commentcount,
+		COALESCE(SUM(questioncount), 0)	questioncount,
+		tags.tags 						tags
+	FROM
+		(
+			SELECT
+			    DATE_PART('YEAR', creationdate)  							"year",
+			    DATE_PART('MONTH', creationdate) 							"month",
+			    (CASE WHEN parentid IS NOT NULL THEN parentid ELSE id END)	postid,
+	    		answercount													,
+				commentcount												,
+				(CASE WHEN posttypeid = 1 THEN 1 ELSE 0 END)              	questioncount,
+				--viewcount													viewcount,
+			                     											tags
+			FROM
+			    posts
+			WHERE 1 = 1
+				AND ((posttypeid = 1 AND tags IS NOT NULL) OR posttypeid = 2)
+		) questions_and_answers,
+		(
+			SELECT
+				id		postid,
+				tags
+			FROM
+				posts
+			WHERE
+				posttypeid=1
+		) tags
+	WHERE
+		questions_and_answers.postid = tags.postid
+	GROUP BY
+		"year", "month", questions_and_answers.postid, tags.tags
 ;
-
-CREATE INDEX tmp_community_posts_by_creationdate_postid_idx ON tmp_community_posts_by_creationdate_postid ("id");
-DROP TABLE IF EXISTS community_posts_by_creationdate_postid;
-CREATE TABLE community_posts_by_creationdate_postid AS
-    SELECT
-        "year",
-        "month",
-        id                         postid,
-        answercount,
-        commentcount,
-        questioncount,
-        --viewcount,
-        (SELECT MAX(tags) tags
-         FROM tmp_community_posts_by_creationdate_postid src
-         WHERE src.id = target.id) tags
-    FROM
-        tmp_community_posts_by_creationdate_postid target;
-DROP TABLE IF EXISTS tmp_community_posts_by_creationdate_postid;
 
 -- Community :: Votes by CreationDate, PostId
 DROP TABLE IF EXISTS community_votes_by_creationdate_postid;
@@ -96,7 +80,7 @@ CREATE TABLE community_posts_votes_merged AS
         COALESCE(downvotes, 0) downvotes,
         tags
     FROM
-        community_posts_by_creationdate_postid posts
+        community_posts_by_creationdate_postid_tags posts
         LEFT JOIN community_votes_by_creationdate_postid votes ON 1 = 1
             AND posts."year" = votes."year"
             AND posts."month" = votes."month"
@@ -119,7 +103,7 @@ CREATE TABLE community AS
         SUM(downvotes)     downvotes
     FROM
         community_posts_votes_merged posts,
-                unnest(string_to_array(posts.tags, '><')) tag
+        unnest(string_to_array(posts.tags, '><')) tag
     GROUP BY
         "year",
         "month",
