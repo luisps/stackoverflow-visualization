@@ -75,8 +75,7 @@ GROUP BY
 ;
 
 -- Skills :: Comments + Posts by CreationDate, OwnerUserId, Tag1, Tag2 (includes duplicates)
-DROP INDEX IF EXISTS skills_comments_posts_by_creationdate_owneruserid_tag_year_month_owneruserid;
-CREATE INDEX skills_comments_posts_by_creationdate_owneruserid_tag_year_month_owneruserid ON skills_comments_posts_by_creationdate_owneruserid_tag ("year", "month", "owneruserid");
+CREATE INDEX IF NOT EXISTS skills_comments_posts_by_creationdate_owneruserid_tag_year_month_owneruserid ON skills_comments_posts_by_creationdate_owneruserid_tag ("year", "month", "owneruserid");
 DROP TABLE IF EXISTS skills_comments_posts_by_creationdate_owneruserid_tag1_tag2;
 CREATE TABLE skills_comments_posts_by_creationdate_owneruserid_tag1_tag2 AS
 SELECT * FROM
@@ -101,17 +100,96 @@ GROUP BY
 	"year", "month", "owneruserid", "count", tag1, tag2
 ;
 
--- Skills :: Final Output
+-- Skills :: Final Output - filtered (in two steps)
+DROP TABLE IF EXISTS tmp_tags;
+CREATE TABLE tmp_tags AS
+SELECT
+	tag1,
+	tag2
+FROM
+	(SELECT
+		(CASE WHEN original.tag < clone.tag THEN original.tag ELSE clone.tag END)	tag1,
+		(CASE WHEN original.tag < clone.tag THEN clone.tag ELSE original.tag END)	tag2
+	FROM
+		tags original,
+		tags clone
+	WHERE
+		original.tag <> clone.tag) with_duplicates
+GROUP BY
+	tag1, tag2;
+
+CREATE INDEX IF NOT EXISTS tmptags_tag1_tag2_idx ON tmp_tags(tag1,tag2);
 DROP TABLE IF EXISTS skills;
 CREATE TABLE skills AS
 SELECT
 	"year"			,
 	"month"			,
 	SUM("count")	count,
-	tag1			,
+	skills.tag1		,
+	skills.tag2
+FROM
+	skills_comments_posts_by_creationdate_owneruserid_tag1_tag2 skills INNER JOIN tmp_tags
+		ON skills.tag1 = tmp_tags.tag1
+		AND skills.tag2 = tmp_tags.tag2
+GROUP BY
+	"year", "month", skills.tag1, skills.tag2
+;
+
+-- Skills :: All tag1, tag2 by year, month
+CREATE INDEX IF NOT EXISTS skills_year_month_tag1_tag2_idx ON skills ("year","month",tag1,tag2);
+DROP TABLE IF EXISTS skills_all_tag1_tag2_by_year_month;
+CREATE TABLE skills_all_tag1_tag2_by_year_month AS
+SELECT 
+	"year",
+	"month",
+	tag1,
 	tag2
 FROM
-	skills_comments_posts_by_creationdate_owneruserid_tag1_tag2
+	(SELECT DISTINCT tag1, tag2 FROM skills) skills_tags,
+	(SELECT DISTINCT "year", "month" FROM skills) skills_time
+ORDER BY "year", "month"
+;
+
+-- Skills :: Final Output - Accumulated and filtered (in three steps)
+DROP TABLE IF EXISTS tmp_skills_accumulated;
+CREATE TABLE tmp_skills_accumulated AS
+SELECT
+	tags."year"							,
+	tags."month"						,
+	tags.tag1							,
+	tags.tag2							,
+	COALESCE(SUM(skills."count"), 0)	"count"
+FROM
+	skills_all_tag1_tag2_by_year_month tags LEFT JOIN skills
+		ON tags.tag1 = skills.tag1
+		AND tags.tag2 = skills.tag2
+		AND ((skills."year" = tags."year" AND skills."month" <= tags."month") OR skills."year" < tags."year")
 GROUP BY
+	tags."year", tags."month", tags.tag1, tags.tag2
+ORDER BY
 	"year", "month", tag1, tag2
+;
+
+DROP TABLE IF EXISTS tags_tags;
+CREATE TABLE tags_tags AS
+SELECT tag1, tag2
+FROM tmp_skills_accumulated
+WHERE 1=1
+	AND "year" = 2017
+	AND "month" = 8
+	AND "count" > (SELECT MAX("count") * 0.0025 FROM tmp_skills_accumulated)
+;
+
+DROP TABLE IF EXISTS skills_accumulated;
+CREATE TABLE skills_accumulated AS
+SELECT
+	skills."year",
+	skills."month",
+	skills."count",
+	skills.tag1,
+	skills.tag2
+FROM
+	tmp_skills_accumulated skills INNER JOIN tags_tags tags
+		ON skills.tag1 = tags.tag1
+		AND skills.tag2 = tags.tag2
 ;

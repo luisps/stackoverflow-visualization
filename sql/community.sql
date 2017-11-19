@@ -88,7 +88,7 @@ CREATE TABLE community_posts_votes_merged AS
 ;
 
 -- Community :: Final Output
-CREATE INDEX community_posts_votes_merged_idx ON community_posts_votes_merged ("year", "month");
+CREATE INDEX IF NOT EXISTS community_posts_votes_merged_idx ON community_posts_votes_merged ("year", "month");
 DROP TABLE IF EXISTS community;
 CREATE TABLE community AS
     SELECT
@@ -110,4 +110,68 @@ CREATE TABLE community AS
         tag
     ORDER BY
         "year", "month", tag
+;
+
+-- Community :: All tags by year, month
+CREATE INDEX IF NOT EXISTS community_year_month_tag_idx ON public.community ("year","month",tag);
+DROP TABLE IF EXISTS community_all_tags_by_year_month;
+CREATE TABLE community_all_tags_by_year_month AS
+SELECT 
+	"year",
+	"month",
+	tag
+FROM
+	(SELECT DISTINCT tag FROM community) community_tags,
+	(SELECT DISTINCT "year", "month" FROM community) community_time
+ORDER BY "year", "month"
+;
+
+-- Community :: Final Output - Accumulated and filtered (in three steps)
+DROP TABLE IF EXISTS tmp_community_accumulated;
+CREATE TABLE tmp_community_accumulated AS
+SELECT
+	tags."year"						,
+	tags."month"					,
+	tags.tag						,
+	COALESCE(SUM(community.answercount), 0)		answercount,
+	COALESCE(SUM(community.commentcount), 0)	commentcount,
+	COALESCE(SUM(community.questioncount), 0)	questioncount,
+	COALESCE(SUM(community.upvotes), 0)			upvotes,
+	COALESCE(SUM(community.downvotes), 0)		downvotes
+FROM
+	community_all_tags_by_year_month tags LEFT JOIN community
+		ON community.tag = tags.tag
+		AND ((community."year" = tags."year" AND community."month" <= tags."month") OR community."year" < tags."year")
+GROUP BY
+	tags."year", tags."month", tags.tag
+ORDER BY
+	"year", "month", tag
+;
+
+DROP TABLE IF EXISTS tags;
+CREATE TABLE tags AS
+SELECT
+	DISTINCT(tag) tag
+FROM
+	tmp_community_accumulated accumulated
+WHERE
+	"year" = 2017 AND
+	"month" = 8 AND
+	(answercount + commentcount + questioncount + upvotes + downvotes) > (SELECT MAX(answercount + commentcount + questioncount + upvotes + downvotes) * 0.0025 FROM tmp_community_accumulated)
+;
+
+DROP TABLE IF EXISTS community_accumulated;
+CREATE TABLE community_accumulated AS
+SELECT
+	"year",
+	"month",
+	tags.tag,
+	answercount,
+	commentcount,
+	questioncount,
+	upvotes,
+	downvotes
+FROM
+	tmp_community_accumulated accumulated INNER JOIN tags
+		ON accumulated.tag=tags.tag
 ;
