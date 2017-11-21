@@ -177,7 +177,7 @@ FROM tmp_skills_accumulated
 WHERE 1=1
 	AND "year" = 2017
 	AND "month" = 8
-	AND "count" > (SELECT MAX("count") * 0.0025 FROM tmp_skills_accumulated)
+	AND "count" > (SELECT MAX("count") * 0.01 FROM tmp_skills_accumulated)
 ;
 
 DROP TABLE IF EXISTS skills_accumulated;

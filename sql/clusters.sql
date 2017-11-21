@@ -24,10 +24,12 @@ DROP TABLE IF EXISTS clusters;
 CREATE TABLE clusters AS
 SELECT
 	clusters1.tag1 tag,
-	(CASE WHEN clusters1."count" / clusters2."count" > 1.25 THEN clusters1.tag2 ELSE clusters1.tag1 END) "cluster"
+	(CASE WHEN clusters1."count" / clusters2."count" > 1.09 THEN clusters1.tag2 ELSE clusters1.tag1 END) "cluster"
 FROM
-	(SELECT * FROM tmp_clusters WHERE "rank"=1) clusters1,
-	(SELECT * FROM tmp_clusters WHERE "rank"=2) clusters2
+	(SELECT * FROM tmp_clusters WHERE "count" IS NOT NULL AND "rank"=1) clusters1,
+	(SELECT * FROM tmp_clusters WHERE "count" IS NOT NULL AND "rank"=2) clusters2
 WHERE
 	clusters1.tag1 = clusters2.tag1
 ;
+UPDATE clusters SET "cluster"=tag WHERE tag IN (SELECT DISTINCT("cluster") FROM clusters);
+

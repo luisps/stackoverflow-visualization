@@ -4,6 +4,7 @@ CREATE TABLE community_posts_by_creationdate_postid_tags AS
     SELECT
 		"year"							,
 		"month"							,
+		"day"							,
 		questions_and_answers.postid	postid,
 		COALESCE(SUM(answercount), 0)	answercount,
 		COALESCE(SUM(commentcount), 0)	commentcount,
@@ -14,6 +15,7 @@ CREATE TABLE community_posts_by_creationdate_postid_tags AS
 			SELECT
 			    DATE_PART('YEAR', creationdate)  							"year",
 			    DATE_PART('MONTH', creationdate) 							"month",
+			    DATE_PART('DAY', creationdate) 								"day",
 			    (CASE WHEN parentid IS NOT NULL THEN parentid ELSE id END)	postid,
 	    		answercount													,
 				commentcount												,
@@ -37,7 +39,7 @@ CREATE TABLE community_posts_by_creationdate_postid_tags AS
 	WHERE
 		questions_and_answers.postid = tags.postid
 	GROUP BY
-		"year", "month", questions_and_answers.postid, tags.tags
+		"year", "month", "day", questions_and_answers.postid, tags.tags
 ;
 
 -- Community :: Votes by CreationDate, PostId
@@ -46,6 +48,7 @@ CREATE TABLE community_votes_by_creationdate_postid AS
     SELECT
         DATE_PART('YEAR', creationdate)  "year",
         DATE_PART('MONTH', creationdate) "month",
+        DATE_PART('DAY', creationdate) "day",
         postid,
         SUM(CASE WHEN votetypeid = 2
             THEN 1
@@ -60,9 +63,10 @@ CREATE TABLE community_votes_by_creationdate_postid AS
     GROUP BY
         DATE_PART('YEAR', creationdate),
         DATE_PART('MONTH', creationdate),
+        DATE_PART('DAY', creationdate),
         postid
     ORDER BY
-        "year", "month", postid
+        "year", "month", "day", postid
 ;
 
 -- Community :: Posts, Votes merged
@@ -71,7 +75,8 @@ CREATE TABLE community_posts_votes_merged AS
     SELECT
         posts."year",
         posts."month",
-        posts.postid           postid,
+        posts."day",
+        posts.postid,
         answercount,
         commentcount,
         questioncount,
@@ -84,16 +89,18 @@ CREATE TABLE community_posts_votes_merged AS
         LEFT JOIN community_votes_by_creationdate_postid votes ON 1 = 1
             AND posts."year" = votes."year"
             AND posts."month" = votes."month"
+            AND posts."day" = votes."day"
             AND posts.postid = votes.postid
 ;
 
 -- Community :: Final Output
-CREATE INDEX IF NOT EXISTS community_posts_votes_merged_idx ON community_posts_votes_merged ("year", "month");
+CREATE INDEX IF NOT EXISTS community_posts_votes_merged_idx ON community_posts_votes_merged ("year", "month", "day");
 DROP TABLE IF EXISTS community;
 CREATE TABLE community AS
     SELECT
         "year",
         "month",
+        "day",
         tag,
         SUM(answercount)   answercount,
         SUM(commentcount)  commentcount,
@@ -107,23 +114,25 @@ CREATE TABLE community AS
     GROUP BY
         "year",
         "month",
+        "day",
         tag
     ORDER BY
-        "year", "month", tag
+        "year", "month", "day", tag
 ;
 
 -- Community :: All tags by year, month
-CREATE INDEX IF NOT EXISTS community_year_month_tag_idx ON public.community ("year","month",tag);
-DROP TABLE IF EXISTS community_all_tags_by_year_month;
-CREATE TABLE community_all_tags_by_year_month AS
+CREATE INDEX IF NOT EXISTS community_year_month_tag_idx ON public.community ("year","month","day",tag);
+DROP TABLE IF EXISTS community_all_tags_by_year_month_day;
+CREATE TABLE community_all_tags_by_year_month_day AS
 SELECT 
 	"year",
 	"month",
+	"day",
 	tag
 FROM
 	(SELECT DISTINCT tag FROM community) community_tags,
-	(SELECT DISTINCT "year", "month" FROM community) community_time
-ORDER BY "year", "month"
+	(SELECT DISTINCT "year", "month", "day" FROM community) community_time
+ORDER BY "year", "month", "day", tag
 ;
 
 -- Community :: Final Output - Accumulated and filtered (in three steps)
@@ -132,6 +141,7 @@ CREATE TABLE tmp_community_accumulated AS
 SELECT
 	tags."year"						,
 	tags."month"					,
+	tags."day"					,
 	tags.tag						,
 	COALESCE(SUM(community.answercount), 0)		answercount,
 	COALESCE(SUM(community.commentcount), 0)	commentcount,
@@ -139,13 +149,15 @@ SELECT
 	COALESCE(SUM(community.upvotes), 0)			upvotes,
 	COALESCE(SUM(community.downvotes), 0)		downvotes
 FROM
-	community_all_tags_by_year_month tags LEFT JOIN community
+	community_all_tags_by_year_month_day tags LEFT JOIN community
 		ON community.tag = tags.tag
-		AND ((community."year" = tags."year" AND community."month" <= tags."month") OR community."year" < tags."year")
+		AND ((community."year" = tags."year" AND community."month" = tags."month" AND community."day" <= tags."day") OR
+			 (community."year" = tags."year" AND community."month" < tags."month") OR
+			 (community."year" < tags."year"))
 GROUP BY
-	tags."year", tags."month", tags.tag
+	tags."year", tags."month", tags."day", tags.tag
 ORDER BY
-	"year", "month", tag
+	"year", "month", "day", tag
 ;
 
 DROP TABLE IF EXISTS tags;
@@ -157,6 +169,7 @@ FROM
 WHERE
 	"year" = 2017 AND
 	"month" = 8 AND
+	"day" = 1 AND
 	(answercount + commentcount + questioncount + upvotes + downvotes) > (SELECT MAX(answercount + commentcount + questioncount + upvotes + downvotes) * 0.0025 FROM tmp_community_accumulated)
 ;
 
@@ -165,6 +178,7 @@ CREATE TABLE community_accumulated AS
 SELECT
 	"year",
 	"month",
+	"day",
 	tags.tag,
 	answercount,
 	commentcount,
@@ -174,4 +188,6 @@ SELECT
 FROM
 	tmp_community_accumulated accumulated INNER JOIN tags
 		ON accumulated.tag=tags.tag
+ORDER BY
+	"year", "month", "day", tags.tag
 ;
