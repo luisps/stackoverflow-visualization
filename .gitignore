@@ -2,7 +2,7 @@
 #Vim swap files
 *swp
 
-data
+/data
 __pycache__
 .idea
 *.iml
