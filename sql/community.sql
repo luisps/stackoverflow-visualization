@@ -21,7 +21,7 @@ CREATE TABLE community_posts_by_creationdate_postid_tags AS
 				commentcount												,
 				(CASE WHEN posttypeid = 1 THEN 1 ELSE 0 END)              	questioncount,
 				--viewcount													viewcount,
-			                     											tags
+				tags
 			FROM
 			    posts
 			WHERE 1 = 1
@@ -120,7 +120,15 @@ CREATE TABLE community AS
         "year", "month", "day", tag
 ;
 
--- Community :: All tags by year, month
+-- Community :: All tags by year, month, day
+DROP TABLE IF EXISTS days;
+CREATE TABLE days AS
+SELECT
+	DATE_PART('YEAR', CURRENT_DATE + i) "year",
+	DATE_PART('MONTH', CURRENT_DATE + i) "month",
+	DATE_PART('DAY', CURRENT_DATE + i) "day"
+FROM generate_series((SELECT MIN(creationdate) - CURRENT_DATE FROM posts), (SELECT MAX(creationdate) - CURRENT_DATE FROM posts)) i;
+
 CREATE INDEX IF NOT EXISTS community_year_month_tag_idx ON public.community ("year","month","day",tag);
 DROP TABLE IF EXISTS community_all_tags_by_year_month_day;
 CREATE TABLE community_all_tags_by_year_month_day AS
@@ -130,8 +138,8 @@ SELECT
 	"day",
 	tag
 FROM
-	(SELECT DISTINCT tag FROM community) community_tags,
-	(SELECT DISTINCT "year", "month", "day" FROM community) community_time
+	days,
+	(SELECT DISTINCT tag FROM community) tags
 ORDER BY "year", "month", "day", tag
 ;
 
@@ -167,9 +175,9 @@ SELECT
 FROM
 	tmp_community_accumulated accumulated
 WHERE
-	"year" = 2017 AND
-	"month" = 8 AND
-	"day" = 1 AND
+	"year" = (SELECT DATE_PART('YEAR', MAX(creationdate)) FROM posts) AND
+	"month" = (SELECT DATE_PART('MONTH', MAX(creationdate)) FROM posts) AND
+	"day" = (SELECT DATE_PART('DAY', MAX(creationdate)) FROM posts) AND
 	(answercount + commentcount + questioncount + upvotes + downvotes) > (SELECT MAX(answercount + commentcount + questioncount + upvotes + downvotes) * 0.0025 FROM tmp_community_accumulated)
 ;
 
