@@ -199,3 +199,13 @@ FROM
 ORDER BY
 	"year", "month", "day", tags.tag
 ;
+
+SELECT
+	"year" || '-' || "month" || '-' || "day",
+	tag,
+	answercount || '-' || commentcount || '-' || questioncount || '-' || upvotes || '-' || downvotes
+FROM community_accumulated;
+
+-- Community :: Transposed Final Output (for CSV)
+SELECT colpivot('community_accumulated_transposed', 'SELECT * FROM community_accumulated', ARRAY['tag'], ARRAY['year', 'month'], '#.answercount', NULL);
+SELECT * FROM community_accumulated_transposed;
