@@ -29,6 +29,7 @@ window.onload = function () {
             data.forEach((row) => {
                 row.year = +row.year;
                 row.month = +row.month;
+                row.day = +row.day;
                 row.answercount = +row.answercount;
                 row.commentcount = +row.commentcount;
                 row.questioncount = +row.questioncount;
@@ -43,15 +44,16 @@ window.onload = function () {
 
                 let dataNodesByYear = dataNodes[row.year] = dataNodes[row.year] || {};
                 let dataNodesByMonthAndYear = dataNodesByYear[row.month] = dataNodesByYear[row.month] || {};
-                let clusterNode = dataNodesByMonthAndYear[row.cluster] = dataNodesByMonthAndYear[row.cluster] || { children: {}, links: [] };
+                let dataNodesByDayAndMonthAndYear = dataNodesByMonthAndYear[row.day] = dataNodesByMonthAndYear[row.day] || {};
+                let clusterNode = dataNodesByDayAndMonthAndYear[row.cluster] = dataNodesByDayAndMonthAndYear[row.cluster] || { children: {}, links: [] };
 
                 // Process clusters
                 if (row.id === row.cluster) { // We found the parent
                     row.children = clusterNode.children;
                     row.links = clusterNode.links;
-                    dataNodesByMonthAndYear[row.cluster] = row;
+                    dataNodesByDayAndMonthAndYear[row.cluster] = row;
                 } else {
-                    clusterNode.children[row.tag] = row;
+                    clusterNode.children[row.id] = row;
                 }
             });
 
@@ -71,6 +73,7 @@ window.onload = function () {
                     let month = +row.month;
                     let dataNodesByYear = dataNodes[year];
                     let dataNodesByMonthAndYear = dataNodesByYear[month];
+                        dataNodesByMonthAndYear = dataNodesByMonthAndYear[Object.keys(dataNodesByMonthAndYear)[0]];
 
                     if (row.cluster1 === row.cluster2) { // Same cluster
                         let clusterNode = dataNodesByMonthAndYear[row.cluster1];
@@ -91,7 +94,7 @@ window.onload = function () {
     function initGraph() {
         // TODO: use the year and month selected from the timeline
         let links = dataLinks[2017][8];
-        let nodes = Object.values(dataNodes[2017][8]);
+        let nodes = Object.values(dataNodes[2017][8][1]);
 
         d3graphLinksValueScale = d3.scaleLinear()
             .domain(d3.extent(links, (l) => l.value))
