@@ -2,6 +2,19 @@ import csv
 import os
 
 
+def _transpose_write(path, path_tmp, data):
+    with open(path_tmp, 'wt', newline='') as file:
+        writer = csv.writer(file, delimiter=',', quotechar='"')
+        writer.writerow(['$date$'] + list(map(lambda n: n[0], list(data.values())[0])))
+
+        for date in data:
+            writer.writerow([date] + list(map(lambda n: n[1], data[date])))
+
+    # Clean
+    os.remove(path)
+    os.rename(path_tmp, path)
+
+
 def transpose_community(community):
     data = {}
     path = 'web/data/' + community + '_community.csv'
@@ -17,25 +30,16 @@ def transpose_community(community):
         for row in reader:
             year, month, day, tag, answercount, commentcount, questioncount, upvotes, downvotes = row
 
-            key = tag
-            column = '-'.join([year, month, day])
+            column = tag
+            key = '-'.join([year, month, day])
             value = '-'.join([answercount, commentcount, questioncount, upvotes, downvotes])
 
-            result = data.get(key, {})
-            result[column] = value
+            result = data.get(key, [])
+            result.append((column, value))
             data[key] = result
 
     # Write
-    with open(path_tmp, 'wt', newline='') as file:
-        writer = csv.writer(file, delimiter=',', quotechar='"')
-        writer.writerow(['tag'] + list(list(data.values())[0].keys()))
-
-        for tag in data:
-            writer.writerow([tag] + list(data[tag].values()))
-
-    # Clean
-    os.remove(path)
-    os.rename(path_tmp, path)
+    _transpose_write(path, path_tmp, data)
 
 
 def transpose_skills(community):
@@ -53,25 +57,16 @@ def transpose_skills(community):
         for row in reader:
             year, month, count, tag1, tag2 = row
 
-            key = '-'.join([tag1, tag2])
-            column = '-'.join([year, month])
+            column = '$'.join([tag1, tag2])
+            key = '-'.join([year, month])
             value = '-'.join([count])
 
-            result = data.get(key, {})
-            result[column] = value
+            result = data.get(key, [])
+            result.append((column, value))
             data[key] = result
 
     # Write
-    with open(path_tmp, 'wt', newline='') as file:
-        writer = csv.writer(file, delimiter=',', quotechar='"')
-        writer.writerow(['tag1', 'tag2'] + list(list(data.values())[0].keys()))
-
-        for tags in data:
-            writer.writerow(tags.split('-') + list(data[tags].values()))
-
-    # Clean
-    os.remove(path)
-    os.rename(path_tmp, path)
+    _transpose_write(path, path_tmp, data)
 
 
 transpose_community('es.stackoverflow.com')

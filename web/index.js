@@ -27,62 +27,84 @@ window.onload = function () {
         console.log('Loaded clusters!');
         d3.csv('data/es.stackoverflow.com_community.csv', (data) => {
             data.forEach((row) => {
-                row.year = +row.year;
-                row.month = +row.month;
-                row.day = +row.day;
-                row.answercount = +row.answercount;
-                row.commentcount = +row.commentcount;
-                row.questioncount = +row.questioncount;
-                row.upvotes = +row.upvotes;
-                row.downvotes = +row.downvotes;
+                let date = row['$date$'].split('-');
+                let year = +date[0], month = +date[1], day = +date[2];
 
-                row.id = '$' + row.tag;
-                row.cluster = dataClusters[row.id];
+                delete row['$date$'];
+                Object.keys(row).forEach((key) => {
+                    let value = row[key].split('-');
+                    let node = {
+                        tag: key,
+                        answercount: +value[0],
+                        commentcount: +value[1],
+                        questioncount: +value[2],
+                        upvotes: +value[3],
+                        downvotes: +value[4]
+                    };
 
-                if (row.cluster === undefined)
-                    return;
+                    node.id = '$' + key;
+                    node.cluster = dataClusters[node.id];
 
-                let dataNodesByYear = dataNodes[row.year] = dataNodes[row.year] || {};
-                let dataNodesByMonthAndYear = dataNodesByYear[row.month] = dataNodesByYear[row.month] || {};
-                let dataNodesByDayAndMonthAndYear = dataNodesByMonthAndYear[row.day] = dataNodesByMonthAndYear[row.day] || {};
-                let clusterNode = dataNodesByDayAndMonthAndYear[row.cluster] = dataNodesByDayAndMonthAndYear[row.cluster] || { children: {}, links: [] };
+                    if (node.cluster === undefined)
+                        return;
 
-                // Process clusters
-                if (row.id === row.cluster) { // We found the parent
-                    row.children = clusterNode.children;
-                    row.links = clusterNode.links;
-                    dataNodesByDayAndMonthAndYear[row.cluster] = row;
-                } else {
-                    clusterNode.children[row.id] = row;
-                }
+                    let dataNodesByYear = dataNodes[year] = dataNodes[year] || {};
+                    let dataNodesByMonthAndYear = dataNodesByYear[month] = dataNodesByYear[month] || {};
+                    let dataNodesByDayAndMonthAndYear = dataNodesByMonthAndYear[day] = dataNodesByMonthAndYear[day] || {};
+                    let clusterNode = dataNodesByDayAndMonthAndYear[node.cluster] = dataNodesByDayAndMonthAndYear[node.cluster] || {
+                        children: {},
+                        links: []
+                    };
+
+                    // Process clusters
+                    if (node.id === node.cluster) { // We found the parent
+                        node.children = clusterNode.children;
+                        node.links = clusterNode.links;
+                        dataNodesByDayAndMonthAndYear[node.cluster] = node;
+                    } else {
+                        clusterNode.children[node.id] = node;
+                    }
+                });
             });
 
             console.log('Loaded community!');
             d3.csv('data/es.stackoverflow.com_skills.csv', function (data) {
                 data.forEach((row) => {
-                    row.count = +row.count;
-                    row.tag1 = '$' + row.tag1;
-                    row.tag2 = '$' + row.tag2;
-                    row.cluster1 = dataClusters[row.tag1];
-                    row.cluster2 = dataClusters[row.tag2];
+                    let date = row['$date$'].split('-');
+                    let year = +date[0], month = +date[1];
 
-                    if (row.cluster1 !== row.cluster2 && (row.tag1 !== row.cluster1 || row.tag2 !== row.cluster2))
-                        return;
+                    delete row['$date$'];
+                    Object.keys(row).forEach((key) => {
+                        let count = +row[key];
+                        let tag1 = '$' + key.split('$')[0];
+                        let tag2 = '$' + key.split('$')[1];
 
-                    let year = +row.year;
-                    let month = +row.month;
-                    let dataNodesByYear = dataNodes[year];
-                    let dataNodesByMonthAndYear = dataNodesByYear[month];
+                        let cluster1 = dataClusters[tag1];
+                        let cluster2 = dataClusters[tag2];
+                        if (cluster1 !== cluster2 && (tag1 !== cluster1 || tag2 !== cluster2))
+                            return;
+
+                        let dataNodesByYear = dataNodes[year];
+                        let dataNodesByMonthAndYear = dataNodesByYear[month];
                         dataNodesByMonthAndYear = dataNodesByMonthAndYear[Object.keys(dataNodesByMonthAndYear)[0]];
 
-                    if (row.cluster1 === row.cluster2) { // Same cluster
-                        let clusterNode = dataNodesByMonthAndYear[row.cluster1];
-                        clusterNode.links.push({ source: clusterNode.children[row.tag1], target: clusterNode.children[row.tag2], value: row.count });
-                    } else { // Different clusters
-                        let dataLinksByYear = dataLinks[year] = dataLinks[year] || {};
-                        let dataLinksByMonthAndYear = dataLinksByYear[month] = dataLinksByYear[month] || [];
-                        dataLinksByMonthAndYear.push({ source: dataNodesByMonthAndYear[row.tag1], target: dataNodesByMonthAndYear[row.tag2], value: row.count });
-                    }
+                        if (cluster1 === cluster2) { // Same cluster
+                            let clusterNode = dataNodesByMonthAndYear[cluster1];
+                            clusterNode.links.push({
+                                source: clusterNode.children[tag1],
+                                target: clusterNode.children[tag2],
+                                value: count
+                            });
+                        } else { // Different clusters
+                            let dataLinksByYear = dataLinks[year] = dataLinks[year] || {};
+                            let dataLinksByMonthAndYear = dataLinksByYear[month] = dataLinksByYear[month] || [];
+                            dataLinksByMonthAndYear.push({
+                                source: dataNodesByMonthAndYear[tag1],
+                                target: dataNodesByMonthAndYear[tag2],
+                                value: count
+                            });
+                        }
+                    });
                 });
 
                 console.log('Loaded skills!');
