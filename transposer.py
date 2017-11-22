@@ -4,7 +4,7 @@ import os
 
 def _transpose_write(path, path_tmp, data):
     with open(path_tmp, 'wt', newline='') as file:
-        writer = csv.writer(file, delimiter=',', quotechar='"')
+        writer = csv.writer(file, delimiter=',', quotechar='"', lineterminator="\n")
         writer.writerow(['$date$'] + list(map(lambda n: n[0], list(data.values())[0])))
 
         for date in data:
