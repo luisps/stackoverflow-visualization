@@ -30,13 +30,13 @@
 }
 
 .metrics {
+  visibility: hidden;  /* only show after page loads */
   height: 2em;
   line-height: 2em;
   width: 8em;
   vertical-align: middle;
   text-align: center;
   margin: 0 auto;
-  /*visibility: hidden;*/  /* only show after page loads */
 
 }
 
