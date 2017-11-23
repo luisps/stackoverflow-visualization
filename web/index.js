@@ -236,7 +236,7 @@ window.onload = function () {
       heatmap();
     });
 
-    $('.metrics').attr('visibility', 'visible');
+    //$('.metrics').attr('visibility', 'visible');
     $('.metrics').slick();
 
     }

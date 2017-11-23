@@ -36,7 +36,7 @@
   vertical-align: middle;
   text-align: center;
   margin: 0 auto;
-  visibility: hidden;  /* only show after page loads */
+  /*visibility: hidden;*/  /* only show after page loads */
 
 }
 
