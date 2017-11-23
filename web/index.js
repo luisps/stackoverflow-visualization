@@ -23,7 +23,6 @@ window.onload = function () {
 
     function updateGraph() {
         // TODO: use the year and month selected from the timeline
-        console.log(dataLinks);
         let links = dataLinks[2017][8];
         let nodes = Object.values(dataNodes[2017][8][1]);
 
@@ -56,6 +55,7 @@ window.onload = function () {
             .enter()
             .append('g')
         ;
+
         d3graphNodes.append('circle')
             .attr('r', (n) => d3graphNodesRadiusScale(n.answercount + n.questioncount + n.commentcount))
             .attr('fill', 'red');
@@ -92,8 +92,10 @@ window.onload = function () {
         metricNames = ['Question', 'Answer', 'Comment']
         selectedMetric = 0;
 
-        activity = getActivity(dataNodes, tag)
+        //initial tag - to remove if we start with no selected tag
+        selectedTag = 'javascript';
 
+        //initialize heatmap
         heatmap = calendarHeatmap()
             .selector('.heatmap-container')
             .tooltipEnabled(true)
@@ -102,38 +104,52 @@ window.onload = function () {
                 console.log('data', data);
         });
 
-        //Initialize heatmap slider
+        //initialize heatmap slider
         $('.metrics').css('visibility', 'visible');
         $('.metrics').slick();
 
+        //update metric on slider change
         $('.metrics').on('afterChange', function(ev, slick, currentSlide) {
             selectedMetric = currentSlide;
-            updateHeatmap();
+            updateHeatmapMetric();
+        });
+        
+        //update tag on node mouse click
+        d3graphNodes.on('click', function(n) {
+            if (selectedTag == n.tag)
+                return;
+
+            selectedTag = n.tag;
+            console.log(selectedTag);
+            updateHeatmapTag();
+            updateHeatmapMetric();
+        
         });
 
     }
 
-    function getActivity(dataNodes, tag) {
-        activity = []
+    function updateHeatmapTag() {
+        tagActivity = []
 
-      for (var year in dataNodes)
-        for (var month in dataNodes[year])
-          for (var day in dataNodes[year][month]) {
+        for (var year in dataNodes) {
+          for (var month in dataNodes[year]) {
+            for (var day in dataNodes[year][month]) {
 
-            tagActivity = dataNodes[year][month][day]['$' + tag];
-            activity.push({
-              date: new Date(year, month, day),
-              questioncount: tagActivity.questioncount,
-              answercount: tagActivity.answercount,
-              commentcount: tagActivity.commentcount
-            });
+              activity = dataNodes[year][month][day]['$' + selectedTag];
+              tagActivity.push({
+                date: new Date(year, month, day),
+                questioncount: activity.questioncount,
+                answercount: activity.answercount,
+                commentcount: activity.commentcount
+              });
+            }
           }
+        }
 
-      return activity;
     }
 
-    function getMetricData(activity, metric) {
-        return activity.map(function(node) {
+    function getMetricData(tagActivity, metric) {
+        return tagActivity.map(function(node) {
             return {
                 date: node.date,
                 count: node[metric]
@@ -141,8 +157,8 @@ window.onload = function () {
         });
     }
 
-    function updateHeatmap() {
-        var metricData = getMetricData(activity, metrics[selectedMetric]);
+    function updateHeatmapMetric() {
+        var metricData = getMetricData(tagActivity, metrics[selectedMetric]);
         var metricName = metricNames[selectedMetric];
 
         heatmap.data(metricData);
@@ -262,7 +278,8 @@ window.onload = function () {
                 updateGraph();
 
                 initHeatmap();
-                updateHeatmap();
+                updateHeatmapTag();
+                updateHeatmapMetric();
 
 
             });
