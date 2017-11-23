@@ -15,7 +15,7 @@ window.onload = function () {
 
     // Load all the data
     let dataClusters = {};
-    let dataNodes = {};
+    dataNodes = {};
     let dataLinks = {};
     console.log('Loading...');
 
@@ -109,6 +109,7 @@ window.onload = function () {
 
                 console.log('Loaded skills!');
                 initGraph();
+                initHeatmap();
             });
         });
     });
@@ -172,5 +173,56 @@ window.onload = function () {
         }
 
     }
+
+	function initHeatmap() {
+
+	  /*
+	  //setting tag here, eventually tag will be selected on graph
+	  var tag = 'javascript';
+
+	  function getMetricData(activity, metric) {
+		return activity.map(function(node) {
+		  return {
+			date: new Date(+node.year, +node.month, +node.day),
+			count: +node[metric]
+		  };
+		});
+	  }
+
+
+	  var metrics = ['questioncount', 'answercount', 'commentcount']
+	  var metricNames = ['Question', 'Answer', 'Comment']
+
+	  activity = nodes.filter(function(node) { return node.tag == tag; });
+
+	  var metricData = getMetricData(activity, metrics[0]);
+	  var metricName = metricNames[0];
+
+	  var heatmap = calendarHeatmap()
+					  .data(metricData)
+					  .selector('.heatmap-container')
+					  .tooltipEnabled(true)
+					  .tooltipUnit(metricName)
+					  .colorRange(['#f4f7f7', '#79a8a9'])
+					  .onClick(function (data) {
+						console.log('data', data);
+					  });
+
+	  heatmap();  // render the chart
+
+
+	  $('.metrics').on('afterChange', function(ev, slick, currentSlide) {
+		metricData = getMetricData(activity, metrics[currentSlide]);
+		metricName = metricNames[currentSlide];
+
+		heatmap.data(metricData);
+		heatmap.tooltipUnit(metricName);
+		heatmap();
+	  });
+
+	  */
+	  //$('.metrics').slick();
+
+	}
 
 };

@@ -7,3 +7,37 @@
     stroke: #fff;
     stroke-width: 1.5px;
 }
+
+#side-bar {
+	position: absolute;
+	width: 20%;
+	height: 100%;
+	background-color: white;
+}
+
+#graph {
+	position: absolute;
+	left: 20%;
+	width: 80%;
+	height: 100%;
+}
+
+.heatmap-container {
+  position: relative;
+  padding: 30px;
+  display: inline-block;
+}
+
+.metrics {
+  height: 2em;
+  line-height: 2em;
+  width: 8em;
+  vertical-align: middle;
+  text-align: center;
+  margin: 0 auto;
+
+}
+
+.slick-prev:before, .slick-next:before{
+      color:gray;
+}
