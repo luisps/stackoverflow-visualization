@@ -19,6 +19,7 @@
     <!-- Calendar Heatmap -->
     <script	src="libs/moment.min.js" charset="utf-8"></script>
     <link rel="stylesheet" type="text/css" href="libs/calendar-heatmap/calendar-heatmap.css">
+    <script src="libs/calendar-heatmap/calendar-heatmap.js"></script>
 
     <!-- Slick Slider -->
     <link rel="stylesheet" type="text/css" href="libs/slick-1.8.0/slick/slick.css"/>
@@ -28,7 +29,8 @@
     <link href= "index.css" rel="stylesheet">
     <script	src="index.js" charset="utf-8"></script>
 </head>
-<body class="mdl-layout mdl-js-layout" style="background: #eeeeee">
+<body>
+<div class="mdl-layout mdl-js-layout" style="background: #eeeeee">
     <header class="mdl-layout__header" style="background: white;">
         <div class="mdl-layout__header-row">
             <!-- Title -->
@@ -51,7 +53,7 @@
         </div>
     </header>
     <main class="mdl-layout__content">
-        <div id="side-bar"></div>
+        <div id="side-bar">
           <div class="heatmap-container">
             <div class="metrics">
               <div>Questions</div>
@@ -62,5 +64,6 @@
         </div>
         <svg id="graph"></svg>
     </main>
+</div>
 </body>
 </html>

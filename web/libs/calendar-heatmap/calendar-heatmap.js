@@ -1,12 +1,12 @@
 
 function calendarHeatmap() {
   // defaults
-  var width = 750;
-  var height = 110;
-  var legendWidth = 150;
+  var width = 300;
+  var height = 60;
+  var legendWidth = 80;
   var selector = 'body';
-  var SQUARE_LENGTH = 11;
-  var SQUARE_PADDING = 2;
+  var SQUARE_LENGTH = 9;
+  var SQUARE_PADDING = 1.5;
   var MONTH_LABEL_PADDING = 6;
   var now = moment().endOf('day').toDate();
   var yearAgo = moment().startOf('day').subtract(1, 'year').toDate();
@@ -94,8 +94,8 @@ function calendarHeatmap() {
 
     d3.select(chart.selector()).selectAll('svg.calendar-heatmap').remove(); // remove the existing chart, if it exists
 
-    var dateRange = d3.time.days(yearAgo, now); // generates an array of date objects within the specified range
-    var monthRange = d3.time.months(moment(yearAgo).startOf('month').toDate(), now); // it ignores the first month if the 1st date is after the start of the month
+    var dateRange = d3.timeDays(yearAgo, now); // generates an array of date objects within the specified range
+    var monthRange = d3.timeMonths(moment(yearAgo).startOf('month').toDate(), now); // it ignores the first month if the 1st date is after the start of the month
     var firstDate = moment(dateRange[0]);
     if (chart.data().length == 0) {
       max = 0;
@@ -104,7 +104,7 @@ function calendarHeatmap() {
     }
 
     // color range
-    var color = d3.scale.linear()
+    var color = d3.scaleLinear()
       .range(chart.colorRange())
       .domain([0, max]);
 
@@ -123,9 +123,10 @@ function calendarHeatmap() {
         .style('padding', '36px');
 
       dayRects = svg.selectAll('.day-cell')
-        .data(dateRange);  //  array of days for the last yr
+        .data(dateRange)  //  array of days for the last yr
+        .enter().append('rect');
 
-      dayRects.enter().append('rect')
+      dayRects
         .attr('class', 'day-cell')
         .attr('width', SQUARE_LENGTH)
         .attr('height', SQUARE_LENGTH)
@@ -198,7 +199,7 @@ function calendarHeatmap() {
           .data(monthRange)
           .enter().append('text')
           .attr('class', 'month-name')
-          .style()
+          //.style()
           .text(function (d) {
             return locale.months[d.getMonth()];
           })

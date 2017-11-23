@@ -174,55 +174,72 @@ window.onload = function () {
 
     }
 
-	function initHeatmap() {
+    function initHeatmap() {
 
-	  /*
-	  //setting tag here, eventually tag will be selected on graph
-	  var tag = 'javascript';
+    //setting tag here, eventually tag will be selected on graph
+    var tag = 'javascript';
 
-	  function getMetricData(activity, metric) {
-		return activity.map(function(node) {
-		  return {
-			date: new Date(+node.year, +node.month, +node.day),
-			count: +node[metric]
-		  };
-		});
-	  }
+    function getActivity(dataNodes, tag) {
+      activity = []
 
+      for (var year in dataNodes)
+        for (var month in dataNodes[year])
+          for (var day in dataNodes[year][month]) {
+            tagActivity = dataNodes[year][month][day]['$' + tag];
 
-	  var metrics = ['questioncount', 'answercount', 'commentcount']
-	  var metricNames = ['Question', 'Answer', 'Comment']
+            activity.push({
+              date: new Date(year, month, day),
+              questioncount: tagActivity.questioncount,
+              answercount: tagActivity.answercount,
+              commentcount: tagActivity.commentcount
+            });
+          }
 
-	  activity = nodes.filter(function(node) { return node.tag == tag; });
+      return activity;
+    }
 
-	  var metricData = getMetricData(activity, metrics[0]);
-	  var metricName = metricNames[0];
-
-	  var heatmap = calendarHeatmap()
-					  .data(metricData)
-					  .selector('.heatmap-container')
-					  .tooltipEnabled(true)
-					  .tooltipUnit(metricName)
-					  .colorRange(['#f4f7f7', '#79a8a9'])
-					  .onClick(function (data) {
-						console.log('data', data);
-					  });
-
-	  heatmap();  // render the chart
+    function getMetricData(activity, metric) {
+      return activity.map(function(node) {
+        return {
+          date: node.date,
+          count: node[metric]
+        };
+      });
+    }
 
 
-	  $('.metrics').on('afterChange', function(ev, slick, currentSlide) {
-		metricData = getMetricData(activity, metrics[currentSlide]);
-		metricName = metricNames[currentSlide];
+    var metrics = ['questioncount', 'answercount', 'commentcount']
+    var metricNames = ['Question', 'Answer', 'Comment']
 
-		heatmap.data(metricData);
-		heatmap.tooltipUnit(metricName);
-		heatmap();
-	  });
+    activity = getActivity(dataNodes, tag)
 
-	  */
-	  //$('.metrics').slick();
+    var metricData = getMetricData(activity, metrics[0]);
+    var metricName = metricNames[0];
+    var heatmap = calendarHeatmap()
+    .data(metricData)
+    .selector('.heatmap-container')
+    .tooltipEnabled(true)
+    .tooltipUnit(metricName)
+    .colorRange(['#f4f7f7', '#79a8a9'])
+    .onClick(function (data) {
+    console.log('data', data);
+    });
 
-	}
+    heatmap();  // render the chart
+
+    $('.metrics').on('afterChange', function(ev, slick, currentSlide) {
+      metricData = getMetricData(activity, metrics[currentSlide]);
+      metricName = metricNames[currentSlide];
+
+      heatmap.data(metricData);
+      heatmap.tooltipUnit(metricName);
+      heatmap();
+    });
+
+    $('.metrics').attr('visibility', 'visible');
+    $('.metrics').slick();
+
+    }
 
 };
+

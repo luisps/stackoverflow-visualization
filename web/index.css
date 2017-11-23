@@ -24,7 +24,8 @@
 
 .heatmap-container {
   position: relative;
-  padding: 30px;
+  padding-top: 30px;
+  left: -20px;
   display: inline-block;
 }
 
@@ -35,6 +36,7 @@
   vertical-align: middle;
   text-align: center;
   margin: 0 auto;
+  visibility: hidden;  /* only show after page loads */
 
 }
 
