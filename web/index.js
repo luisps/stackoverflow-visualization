@@ -2,8 +2,88 @@ window.onload = function () {
     d3graph.init();
     d3heatmap.init();
     data.load('es');
+    //data.initTimeSlider();
+
+    function initTimeSlider() {
+
+        //left and right limits of slider
+        startDate = new Date(2012, 1, 1);
+        endDate = new Date(2014, 1, 1);
+
+        //select a fifth of slider on initial configuration
+        initialSelectedLeft = startDate;
+        initialSelectedRight = new Date(startDate.getTime() + ((endDate.getTime() - startDate.getTime()) / 5));
+
+        var num_ticks = 12;
+        var formatDate = d3.timeFormat("%b %y");
+
+        timeSlider = d3.slider()
+                  .scale(d3.scaleTime().domain([startDate, endDate]))
+                  .value([initialSelectedLeft, initialSelectedRight])
+                  .orient("bottom")
+                  .axis(d3.axisBottom().ticks(num_ticks).tickFormat(formatDate));
+
+        d3.select('#time-slider').call(timeSlider);
+
+        timeSlider.on("end", function(e, value) {
+            console.log('Start date:', new Date(value[0]));
+            console.log('End date:', new Date(value[1]));
+        });
+
+    }
+
+    function initTimeSlider2() {
+
+        function updateTick(tick, value) {
+            //setting tick position
+            tick.setAttribute('transform', 'translate(' + xPos(value) + ',0)');
+
+            //setting tick's text
+            tick.children[1].innerHTML = formatDate(value);
+        }
+
+        //left and right limits of slider
+        startDate = new Date(2012, 1, 1);
+        endDate = new Date(2014, 1, 1);
+
+        //select a fifth of slider on initial configuration
+        initialSelectedLeft = startDate;
+        initialSelectedRight = new Date(startDate.getTime() + ((endDate.getTime() - startDate.getTime()) / 5));
+
+        //ticks at beginning and end of slider will be fixed
+        var tickValues = [startDate, endDate, initialSelectedLeft, initialSelectedRight]
+        var formatDate = d3.timeFormat("%b %y");
+
+        timeSlider = d3.slider()
+                  .scale(d3.scaleTime().domain([startDate, endDate]))
+                  .value([initialSelectedLeft, initialSelectedRight])
+                  .orient("bottom")
+                  .axis(d3.axisBottom().tickValues(tickValues).tickFormat(formatDate));
+
+        d3.select('#time-slider').call(timeSlider);
+        
+        //update ticks while slide is moving
+        var xPos = timeSlider.axis().scale();
+        ticks = $('#time-slider .tick');
+
+        timeSlider.on("slide", function(e, value) {
+            updateTick(ticks[2], value[0]);
+            updateTick(ticks[3], value[1]);
+        });
+
+        //hide tick lines as they don't look good in a moving slider
+        ticks.find('line').css('visibility', 'hidden')
+
+        timeSlider.on("end", function(e, value) {
+            console.log('Start date:', new Date(value[0]));
+            console.log('End date:', new Date(value[1]));
+        });
+
+    }
 
 
+    //initTimeSlider();
+    initTimeSlider2();
 
     /*
     var dataClusters = {};

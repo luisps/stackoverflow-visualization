@@ -38,3 +38,11 @@
 .slick-prev:before, .slick-next:before{
       color:gray;
 }
+
+#time-slider {
+	position: absolute; 
+	left: 25%;
+	width: 65%;
+	top: 4%;
+	z-index: 1000;
+}
