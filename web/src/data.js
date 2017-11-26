@@ -6,10 +6,13 @@ const data = (function () {
     const PATH_SKILLS = 'data/{region}.stackoverflow.com_skills.csv';
 
     // Variables
-    let $dispatcher = d3.dispatch('load', 'load.heatmap', 'load.graph'),
+    let $dispatcher = d3.dispatch('load', 'load.heatmap', 'load.graph', 'load.timeSlider'),
         clusters = {},
         links = {},
-        nodes = {}
+        nodes = {},
+        selectedClusters = {},
+        selectedLinks = {},
+        selectedNodes = {}
     ;
 
     return {
