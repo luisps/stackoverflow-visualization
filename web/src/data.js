@@ -6,22 +6,87 @@ const data = (function () {
     const PATH_SKILLS = 'data/{region}.stackoverflow.com_skills.csv';
 
     // Variables
-    let $dispatcher = d3.dispatch('load', 'load.heatmap', 'load.graph', 'load.timeSlider'),
+    let $dispatcher = d3.dispatch('load', 'load.timeSlider', 'update', 'update-graph', 'update.heatmap', 'intervalChanged'),  //refactor
+        dataset_clusters = {},
+        dataset_links = {},
+        dataset_nodes = {},
         clusters = {},
         links = {},
-        nodes = {},
-        selectedClusters = {},
-        selectedLinks = {},
-        selectedNodes = {}
+        nodes = {}
     ;
 
     return {
+        init,
         $dispatcher,
         clusters,
         links,
         nodes,
+        dataset_clusters,
+        dataset_links,
+        dataset_nodes,
         load
     };
+
+    function intervalChanged(startInterval, endInterval) {
+
+        var startYear = startInterval['year'], startMonth = startInterval['month'], startDay = startInterval['day'];
+        var endYear = endInterval['year'], endMonth = endInterval['month'], endDay = endInterval['day'];
+
+        console.log('Start: ' + startYear + ' ' + startMonth + ' ' + startDay);
+        console.log('End: ' + endYear + ' ' + endMonth + ' ' + endDay);
+
+        //unfinished - doing it just for graph
+        
+        //do some variable renaming, like linkDeltas, nodeDeltas, etc
+        nodes = [];
+
+        startNodes = data.dataset_nodes[startYear][startMonth][startDay];
+        endNodes = data.dataset_nodes[endYear][endMonth][endDay];
+
+        Object.keys(startNodes).forEach(function(tag) {
+            nodes.push({tag: startNodes[tag].tag,
+                        answercount: endNodes[tag].answercount - startNodes[tag].answercount,
+                        questioncount: endNodes[tag].questioncount - startNodes[tag].questioncount,
+                        commentcount: endNodes[tag].commentcount - startNodes[tag].commentcount
+
+                      });
+        });
+
+        console.log(nodes);
+
+        //still not sure if we apply the same delta operation to links as we did to nodes above
+        links = data.dataset_links[startYear][startMonth];
+
+        /*
+        links = [];
+
+        startLinks = data.dataset_links[startYear][startMonth];
+        endLinks = data.dataset_links[endYear][endMonth];
+
+        startLinks.forEach(function(elem) {
+            links.push({tag: startNodes[tag].tag,
+                        answercount: endNodes[tag].answercount - startNodes[tag].answercount,
+                        questioncount: endNodes[tag].questioncount - startNodes[tag].questioncount,
+                        commentcount: endNodes[tag].commentcount - startNodes[tag].commentcount
+
+                      });
+        });
+
+        console.log(nodes);
+        */
+
+        //calling graph update through data module looks weird - got no time left
+        data.$dispatcher.call('update-graph', null, links, nodes);
+
+    }
+
+    function init() {
+
+        //event handlers
+        $dispatcher.on('intervalChanged', intervalChanged);
+
+    }
+
 
     function load(region) {
         d3.csv(PATH_CLUSTERS.replace('{region}', region), (data) => {
@@ -43,48 +108,7 @@ const data = (function () {
     }
 
     function loadClusters(data) {
-        data.forEach((row) => clusters['$' + row.tag] = '$' + row.cluster);
-    }
-
-
-    function loadLinks(data) {
-        data.forEach((row) => {
-            let date = row['$date$'].split('-');
-            let year = +date[0], month = +date[1];
-
-            delete row['$date$'];
-            Object.keys(row).forEach((key) => {
-                let count = +row[key];
-                let tag1 = '$' + key.split('$')[0];
-                let tag2 = '$' + key.split('$')[1];
-
-                let cluster1 = clusters[tag1];
-                let cluster2 = clusters[tag2];
-                if (cluster1 !== cluster2 && (tag1 !== cluster1 || tag2 !== cluster2))
-                    return;
-
-                let nodesByYear = nodes[year];
-                let nodesByMonthAndYear = nodesByYear[month];
-                nodesByMonthAndYear = nodesByMonthAndYear[Object.keys(nodesByMonthAndYear)[0]];
-
-                if (cluster1 === cluster2) { // Same cluster
-                    let clusterNode = nodesByMonthAndYear[cluster1];
-                    clusterNode.childrenLinks.push({
-                        source: clusterNode.children[tag1],
-                        target: clusterNode.children[tag2],
-                        value: count
-                    });
-                } else { // Different clusters
-                    let linksByYear = links[year] = links[year] || {};
-                    let linksByMonthAndYear = linksByYear[month] = linksByYear[month] || [];
-                    linksByMonthAndYear.push({
-                        source: nodesByMonthAndYear[cluster1],
-                        target: nodesByMonthAndYear[cluster2],
-                        value: count
-                    });
-                }
-            });
-        });
+        data.forEach((row) => dataset_clusters['$' + row.tag] = '$' + row.cluster);
     }
 
     function loadNodes(data) {
@@ -105,13 +129,13 @@ const data = (function () {
                 };
 
                 node.id = '$' + key;
-                node.cluster = clusters[node.id];
+                node.cluster = dataset_clusters[node.id];
                 node.radius = node.answercount + node.commentcount + node.questioncount + node.upvotes + node.downvotes;
 
                 if (node.cluster === undefined)
                     return;
 
-                let nodesByYear = nodes[year] = nodes[year] || {};
+                let nodesByYear = dataset_nodes[year] = dataset_nodes[year] || {};
                 let nodesByMonthAndYear = nodesByYear[month] = nodesByYear[month] || {};
                 let nodesByDayAndMonthAndYear = nodesByMonthAndYear[day] = nodesByMonthAndYear[day] || {};
                 let clusterNode = nodesByDayAndMonthAndYear[node.cluster] = nodesByDayAndMonthAndYear[node.cluster] || {
@@ -126,6 +150,46 @@ const data = (function () {
                     nodesByDayAndMonthAndYear[node.cluster] = node;
                 } else {
                     clusterNode.children[node.id] = node;
+                }
+            });
+        });
+    }
+
+    function loadLinks(data) {
+        data.forEach((row) => {
+            let date = row['$date$'].split('-');
+            let year = +date[0], month = +date[1];
+
+            delete row['$date$'];
+            Object.keys(row).forEach((key) => {
+                let count = +row[key];
+                let tag1 = '$' + key.split('$')[0];
+                let tag2 = '$' + key.split('$')[1];
+
+                let cluster1 = dataset_clusters[tag1];
+                let cluster2 = dataset_clusters[tag2];
+                if (cluster1 !== cluster2 && (tag1 !== cluster1 || tag2 !== cluster2))
+                    return;
+
+                let nodesByYear = dataset_nodes[year];
+                let nodesByMonthAndYear = nodesByYear[month];
+                nodesByMonthAndYear = nodesByMonthAndYear[Object.keys(nodesByMonthAndYear)[0]];
+
+                if (cluster1 === cluster2) { // Same cluster
+                    let clusterNode = nodesByMonthAndYear[cluster1];
+                    clusterNode.childrenLinks.push({
+                        source: clusterNode.children[tag1],
+                        target: clusterNode.children[tag2],
+                        value: count
+                    });
+                } else { // Different clusters
+                    let linksByYear = dataset_links[year] = dataset_links[year] || {};
+                    let linksByMonthAndYear = linksByYear[month] = linksByYear[month] || [];
+                    linksByMonthAndYear.push({
+                        source: nodesByMonthAndYear[cluster1],
+                        target: nodesByMonthAndYear[cluster2],
+                        value: count
+                    });
                 }
             });
         });

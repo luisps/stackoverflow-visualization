@@ -33,7 +33,7 @@ const d3heatmap = (function () {
         });
 
         // Event listeners
-        data.$dispatcher.on('load.heatmap', () => {
+        data.$dispatcher.on('update.heatmap', () => {
             updateHeatmapTag();
             updateHeatmapMetric();
         });
@@ -53,7 +53,7 @@ const d3heatmap = (function () {
         tagActivity = [];
 
         // TODO: use the year and month selected from the timeline. Centralize this on the data module
-        let dataNodes = data.nodes;
+        let dataNodes = data.selected_nodes;
 
 
         for (var year in dataNodes) {

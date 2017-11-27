@@ -18,7 +18,6 @@ const d3graph = (function () {
     };
 
     function init() {
-        console.log('init');
         d3graph = d3.select('#graph');
 
         let dimensions = window.getComputedStyle(d3graph.node());
@@ -50,20 +49,24 @@ const d3graph = (function () {
         ;
 
         // Event listeners
-        data.$dispatcher.on('load.graph', update);
+        data.$dispatcher.on('update-graph', update);
     }
 
-    function update() {
+    function update(dataLinks, dataNodes) {
         // TODO: use the year and month selected from the timeline. Centralize this on the data module
-        let dataLinks = data.links[2017][8];
-        let dataNodes = Object.values(data.nodes[2017][8][1]);
+        //let dataLinks = data.links;
+        //let dataNodes = data.nodes;
+        //console.log(data.links);
+        //console.log(data.nodes);
 
+        /*
         if (selected !== null) {
             Object.values(selected.children).forEach((n) => {
                 n.dataNodesIndex = dataNodes.length;
                 dataNodes.push(n);
             });
         }
+        */
 
         // Update scales
         linksValueScale = d3.scaleLinear()
