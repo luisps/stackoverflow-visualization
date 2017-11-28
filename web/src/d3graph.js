@@ -1,18 +1,31 @@
 const d3graph = (function () {
 
-    // Variables
+    // Constants
+    const NODE_RADIUS_MIN = 8;
+    const NODE_RADIUS_MAX = 32;
+    const NODE_FILL = (n) => selected && n.tag === selected.tag ? '#F48024' : 'white';
+    const NODE_STROKE = (n) => selected && n.tag === selected.tag ? '#F48024' : null;
+    const NODE_STROKE_WIDTH = (n) => selected && n.tag === selected.tag ? '2' : null;
+
+    const LINK_STROKE = (l) => selected && (l.source.tag === selected.tag || l.target.tag === selected.tag) ? '#F48024' : '#BBB';
+    const LINK_STROKE_WIDTH = (l) => selected && (l.source.tag === selected.tag || l.target.tag === selected.tag) ? 2 :
+                                     hovered && (l.source.tag === hovered.tag || l.target.tag === hovered.tag) ? 1 : 0;
+
+    // Private Variables
     let $dispatcher = d3.dispatch('select'),
-        d3graph,
-        d3graphLabels,
-        d3graphLinks,
-        d3graphNodes,
-        d3simulation,
-        linksValueScale,
-        nodesRadiusScale,
-        selected = null
+        d3graph = null,
+        d3graphLabels = null,
+        d3graphLinks = null,
+        d3graphNodes = null,
+        d3simulation = null,
+        linksValueScale = null,
+        nodesRadiusScale = null,
+        selected = null,
+        hovered = null
     ;
 
     return {
+        $d3select: () => d3graph,
         $dispatcher,
         init
     };
@@ -20,21 +33,19 @@ const d3graph = (function () {
     function init() {
         d3graph = d3.select('#graph');
 
-        let dimensions = window.getComputedStyle(d3graph.node());
-        dimensions = { height: parseInt(dimensions.height), width: parseInt(dimensions.width) };
-
         // Simulation
         d3simulation = d3.forceSimulation()
-            .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
+            .force('center', d3.forceCenter(d3zoom.$dimensions().width / 2, d3zoom.$dimensions().height / 2))
             .force('charge', d3.forceManyBody().strength(-300))
-            .force('link', d3.forceLink().id((n) => n.id).distance((l) => 1 / linksValueScale(l.value) + 64).strength((l) => linksValueScale(l.value)))
-            .force('collision', d3.forceCollide().radius((n) => nodesRadiusScale(n.radius) + 4))
+            .force('link', d3.forceLink().distance((l) => 1 / linksValueScale(l.value) + NODE_RADIUS_MAX * 3).strength((l) => linksValueScale(l.value)))
+            .force('collision', d3.forceCollide().radius((n) => nodesRadiusScale(n.radius) * 1.25))
             .on('tick', onTick)
+            //.stop()
         ;
 
         // Links
         d3graphLinks = d3graph.append('g')
-            .attr('class', 'edges')
+            .attr('class', 'links')
         ;
 
         // Nodes
@@ -49,24 +60,14 @@ const d3graph = (function () {
         ;
 
         // Event listeners
-        data.$dispatcher.on('update-graph', update);
+        d3time.$dispatcher.on('update.graph', load);
     }
 
-    function update(dataLinks, dataNodes) {
-        // TODO: use the year and month selected from the timeline. Centralize this on the data module
-        //let dataLinks = data.links;
-        //let dataNodes = data.nodes;
-        //console.log(data.links);
-        //console.log(data.nodes);
+    function load(data) {
+        console.time('d3graph.load');
 
-        /*
-        if (selected !== null) {
-            Object.values(selected.children).forEach((n) => {
-                n.dataNodesIndex = dataNodes.length;
-                dataNodes.push(n);
-            });
-        }
-        */
+        let dataLinks = data.delta.links;
+        let dataNodes = Object.values(data.delta.nodes).filter((n) => n.linkCount > 0);
 
         // Update scales
         linksValueScale = d3.scaleLinear()
@@ -74,74 +75,117 @@ const d3graph = (function () {
             .range([0.1, 1]);
         nodesRadiusScale = d3.scaleLog()
             .domain(d3.extent(dataNodes, (n) => n.radius))
-            .range([4, 24]);
+            .range([NODE_RADIUS_MIN, NODE_RADIUS_MAX]);
+
+        d3simulation.force("link").links(dataLinks);
+        d3simulation.nodes(dataNodes);
+        d3simulation.alpha(1).restart();
+
+        /*
+        // Manually run the simulation (https://bl.ocks.org/mbostock/1667139)
+        for (let i = 0, n = Math.ceil(Math.log(d3simulation.alphaMin()) / Math.log(1 - d3simulation.alphaDecay())); i < n; ++i)
+            d3simulation.tick();
+        */
 
         // Update links
         let links = d3graphLinks.selectAll('line').data(dataLinks);
-        links.exit() // Items to be removed
-            .remove();
-        links.enter() // Items to be added
+        links.exit().remove();      // Items to be removed
+        links.enter()               // Items to be added
             .append('line');
 
         // Update nodes
-        let nodes = d3graphNodes.selectAll('g').data(dataNodes);
-        nodes.exit().remove();              // Items to be removed
-        nodes = nodes.enter()               // Items to be added
-            .append('g')
-            .on('click', onNodeClick);
-        nodes.append('circle')
-            .attr('r', (n) => nodesRadiusScale(n.radius))
+        let nodes = d3graphNodes.selectAll('circle').data(dataNodes);
+        nodes.exit().remove();          // Items to be removed
+        nodes.enter().append('circle')  // Items to be added
             .attr('fill', 'white')
-        ;
+            .attr('r', (n) => nodesRadiusScale(n.radius))
+            .on('click', onNodeClick)
+            .on('mouseover', onNodeMouseOver)
+            .on('mouseout', onNodeMouseOut);
+        nodes                           // Items to be updated
+            .attr('r', (n) => nodesRadiusScale(n.radius));
 
-        let labels = d3graphLabels.selectAll('text').data(dataNodes);
-        labels.exit().remove();     // Items to be removed
-        labels = labels.enter();    // Items to be added
-        labels.append('text')
+        // Update labels
+        let labels = d3graphLabels.selectAll('text').data(dataNodes.filter((n) => Object.keys(n.children).length === 0));
+        labels.exit().remove();         // Items to be removed
+        labels.enter().append('text')   // Items to be added
             .text((d) => d.tag)
-            .attr('text-anchor', 'middle')
+            .attr('text-anchor', 'middle');
+
+        console.timeEnd('d3graph.load');
+    }
+
+    function update() {
+        //console.time('d3graph.update');
+
+        // Update links
+        d3graphLinks.selectAll('line')
+            .attr('stroke', LINK_STROKE)
+            .attr('stroke-width', LINK_STROKE_WIDTH)
         ;
 
-        // Update simulation
-        d3simulation.force("link").links(dataLinks);
-        d3simulation.nodes(dataNodes);
+        // Update nodes
+        d3graphNodes.selectAll('circle')
+            .attr('fill', NODE_FILL)
+            .attr('stroke', NODE_STROKE)
+            .attr('stroke-width', NODE_STROKE_WIDTH)
+        ;
+
+
+        //console.timeEnd('d3graph.update');
     }
 
     function onNodeClick(n) {
-        if (Object.keys(n.children).length === 0) return;
-
-        // TODO: deselect previously selected
-        if (selected !== null) {
-
-        }
+        selected = n;
 
         // Select newly selected
-        selected = n;
-        d3.select(this).node().classList.add('selected');
+        let node = this;
+        node.classList.add('selected');
+
+        // Zoom to node
+        let nodeBB = node.getBBox();
+            nodeBB = {
+                height: nodeBB.height,
+                width: nodeBB.width,
+                x: nodeBB.x + nodesRadiusScale(n.radius),
+                y: nodeBB.y + nodesRadiusScale(n.radius)
+            };
+        d3zoom.zoomTo(nodeBB, 0.7);
+
+        // TODO: zoom apenas se tem filhos
+        // TODO: click fora tem de permitir selecionar nada
+        // TODO: click no proprio seleciona anda
 
         update();
         $dispatcher.call('select', this, selected);
     }
 
+    function onNodeMouseOver(n) {
+        hovered = n;
+        update();
+    }
+    function onNodeMouseOut(n) {
+        hovered = null;
+        update();
+    }
+
     function onTick() {
         if (d3graphNodes === null || d3graphLinks === null) return;
-        /*
-        d3graphLinks
-            .attr("x1", function(d) { return d.source.x; })
-            .attr("y1", function(d) { return d.source.y; })
-            .attr("x2", function(d) { return d.target.x; })
-            .attr("y2", function(d) { return d.target.y; });
-        */
+
+        d3graphLinks.selectAll('line')
+            .attr("x1", (l) => l.source.x)
+            .attr("y1", (l) => l.source.y)
+            .attr("x2", (l) => l.target.x)
+            .attr("y2", (l) => l.target.y);
 
         d3graphLabels.selectAll('text')
-            .attr('transform', (n) => 'translate(' + n.x + ',' + (n.y - nodesRadiusScale(n.radius) - 4) + ')');
-        d3graphNodes.selectAll('g')
-            .attr('transform', (n) => 'translate(' + n.x + ',' + n.y + ')');
-        /*
-        d3graphNodes.selectAll('text')
-            .attr("x", function(d) { return d.x; })
-            .attr("y", function(d) { return d.y; });
-            */
+            .attr('x', (n) => n.x)
+            .attr('y', (n) => n.y - nodesRadiusScale(n.radius) - 4)
+        ;
+        d3graphNodes.selectAll('circle')
+            .attr('cx', (n) => n.x)
+            .attr('cy', (n) => n.y)
+        ;
     }
 
 }());

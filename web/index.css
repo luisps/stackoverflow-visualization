@@ -1,8 +1,3 @@
-.edges line {
-    stroke: #999;
-    stroke-opacity: 0.6;
-}
-
 #side-bar {
 	position: absolute;
 	width: 20%;
@@ -10,11 +5,14 @@
 	background-color: white;
 }
 
-#graph {
+#zoom {
 	position: absolute;
 	left: 20%;
 	width: 80%;
 	height: 100%;
+}
+#zoom text {
+    pointer-events: none;
 }
 
 .heatmap-container {

@@ -1,17 +1,18 @@
 const d3heatmap = (function () {
 
+    // Variables
+    let $data = null,
+        $tag = null
+    ;
+
     return {
         init
     };
 
     function init() {
-
         metrics = ['questioncount', 'answercount', 'commentcount']
         metricNames = ['Question', 'Answer', 'Comment']
         selectedMetric = 0;
-
-        //initial tag - to remove if we start with no selected tag
-        selectedTag = 'javascript';
 
         //initialize heatmap
         heatmap = calendarHeatmap()
@@ -29,26 +30,35 @@ const d3heatmap = (function () {
         //update metric on slider change
         $('.metrics').on('afterChange', function(ev, slick, currentSlide) {
             selectedMetric = currentSlide;
-            updateHeatmapMetric();
+            load();
         });
 
         // Event listeners
-        data.$dispatcher.on('update.heatmap', () => {
-            updateHeatmapTag();
-            updateHeatmapMetric();
+        d3time.$dispatcher.on('update.heatmap', (data) => {
+            $data = data.series.nodes;
+            load();
         });
         d3graph.$dispatcher.on('select', (selected) => {
-            if (selectedTag == selected.tag)
-                return;
-
-            selectedTag = selected.tag;
-            console.log(selectedTag);
-            updateHeatmapTag();
-            updateHeatmapMetric();
+            $tag = selected.id;
+            load();
         })
-
     }
 
+    function load() {
+        if ($data === null || $tag === null) return;
+
+        let metric = metrics[selectedMetric],
+            metricName = metricNames[selectedMetric];
+
+        heatmap.tooltipUnit(metricName);
+        heatmap.data($data[$tag].map((n) => {
+            n.count = n[metric];
+            return n;
+        }));
+        heatmap();
+    }
+
+    /*
     function updateHeatmapTag() {
         tagActivity = [];
 
@@ -72,7 +82,9 @@ const d3heatmap = (function () {
         }
 
     }
+    */
 
+    /*
     function getMetricData(tagActivity, metric) {
         return tagActivity.map(function(node) {
             return {
@@ -90,6 +102,7 @@ const d3heatmap = (function () {
         heatmap.tooltipUnit(metricName);
         heatmap();  // render the chart
     }
+    */
 
 
 }());
