@@ -15,6 +15,7 @@ const d3zoom = (function () {
     return {
         $dimensions: () => d3svgDimensions,
         init,
+        zoomReset,
         zoomTo
     };
 
@@ -46,6 +47,12 @@ const d3zoom = (function () {
         d3svg.transition()
             .duration(ZOOM_DURATION)
             .call(d3zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale));
+    }
+
+    function zoomReset() {
+        d3svg.transition()
+            .duration(ZOOM_DURATION)
+            .call(d3zoom.transform, d3.zoomIdentity);
     }
 
 }());

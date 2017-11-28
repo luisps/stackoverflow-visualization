@@ -12,10 +12,10 @@ const d3heatmap = (function () {
     function init() {
 
 		// Set custom color for the calendar heatmap
-        var color = '#cd2327';
+        var color = '#F48024';
 
         // Set overview type (choices are global, year, month and week)
-        var overview = 'global';
+        var overview = 'year';
 
         // Handler function
         var print = function (val) {
@@ -29,6 +29,8 @@ const d3heatmap = (function () {
         //data.$dispatcher.on('load.heatmap', load);
 
         d3graph.$dispatcher.on('select', (selected) => {
+            if (!selected) return;
+
             selectedTag = selected.id;
             selectTag();
         })
