@@ -1,15 +1,15 @@
 #side-bar {
 	position: absolute;
-	width: 20%;
-	height: 100%;
+	top: 70%;
+	bottom: 0;
+	width: 100%;
 	background-color: white;
 }
 
 #zoom {
 	position: absolute;
-	left: 20%;
-	width: 80%;
-	height: 100%;
+	height: 70%;
+	width: 100%;
 }
 #zoom text {
     pointer-events: none;

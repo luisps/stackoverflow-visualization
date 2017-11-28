@@ -1,8 +1,8 @@
 const d3heatmap = (function () {
 
     // Variables
-    let $data = null,
-        $tag = null
+    let selectedTag = null,
+        tagData = []
     ;
 
     return {
@@ -10,99 +10,94 @@ const d3heatmap = (function () {
     };
 
     function init() {
-        metrics = ['questioncount', 'answercount', 'commentcount']
-        metricNames = ['Question', 'Answer', 'Comment']
-        selectedMetric = 0;
 
-        //initialize heatmap
-        heatmap = calendarHeatmap()
-            .selector('.heatmap-container')
-            .tooltipEnabled(true)
-            .colorRange(['#f4f7f7', '#79a8a9'])
-            .onClick(function (data) {
-                console.log('data', data);
-            });
+		// Set custom color for the calendar heatmap
+        var color = '#cd2327';
 
-        //initialize heatmap slider
-        $('.metrics').css('visibility', 'visible');
-        $('.metrics').slick();
+        // Set overview type (choices are global, year, month and week)
+        var overview = 'global';
 
-        //update metric on slider change
-        $('.metrics').on('afterChange', function(ev, slick, currentSlide) {
-            selectedMetric = currentSlide;
-            load();
-        });
+        // Handler function
+        var print = function (val) {
+            console.log(val);
+        };
+
+        // Initialize calendar heatmap
+        calendarHeatmap.init(color, overview, print);
 
         // Event listeners
-        d3time.$dispatcher.on('update.heatmap', (data) => {
-            $data = data.series.nodes;
-            load();
-        });
+        //data.$dispatcher.on('load.heatmap', load);
+
         d3graph.$dispatcher.on('select', (selected) => {
-            $tag = selected.id;
-            load();
+            selectedTag = selected.id;
+            selectTag();
         })
+
     }
 
-    function load() {
-        if ($data === null || $tag === null) return;
+    function selectTag() {
 
-        let metric = metrics[selectedMetric],
-            metricName = metricNames[selectedMetric];
+        if (selectedTag == null) {
+            console.log('No tag selected!');
+            return;
+        }
 
-        heatmap.tooltipUnit(metricName);
-        heatmap.data($data[$tag].map((n) => {
-            n.count = n[metric];
-            return n;
-        }));
-        heatmap();
+        updateTagData();
+        calendarHeatmap.data = tagData;
+        calendarHeatmap.selectedTag = selectedTag.substring(1);
+        calendarHeatmap.drawChart();
+
     }
 
-    /*
-    function updateHeatmapTag() {
-        tagActivity = [];
+    function updateTagData() {
 
-        // TODO: use the year and month selected from the timeline. Centralize this on the data module
-        let dataNodes = data.selected_nodes;
-
+        //erase data from previous tag
+        tagData = [];
+        var dataNodes = data.nodes;
+        var prev = null;
 
         for (var year in dataNodes) {
             for (var month in dataNodes[year]) {
                 for (var day in dataNodes[year][month]) {
+                    var activity = dataNodes[year][month][day][selectedTag];
 
-                    activity = dataNodes[year][month][day]['$' + selectedTag];
-                    tagActivity.push({
+                    //since we're dealing with accumulated values we must subtract
+                    //the counts of the current day to the counts of the previous day
+                    if (prev == null) {
+                        var questionCount = activity.questioncount,
+                            answerCount = activity.answercount,
+                            commentCount = activity.commentcount
+                            ;
+                    } else {
+                        var questionCount = activity.questioncount - prev.questioncount,
+                            answerCount = activity.answercount - prev.answercount,
+                            commentCount = activity.commentcount - prev.commentcount
+                            ;
+                    }
+                    prev = activity;
+
+                    tagData.push({
                         date: new Date(year, month, day),
-                        questioncount: activity.questioncount,
-                        answercount: activity.answercount,
-                        commentcount: activity.commentcount
+                        total: questionCount + answerCount + commentCount,
+                        summary: [
+                        {
+                            name: 'Questions',
+                            value: questionCount
+                        },
+                        {
+                            name: 'Answers',
+                            value: answerCount
+                        },
+                        {
+                            name: 'Comments',
+                            value: commentCount
+                        }]
                     });
                 }
             }
         }
 
     }
-    */
-
-    /*
-    function getMetricData(tagActivity, metric) {
-        return tagActivity.map(function(node) {
-            return {
-                date: node.date,
-                count: node[metric]
-            };
-        });
-    }
-
-    function updateHeatmapMetric() {
-        var metricData = getMetricData(tagActivity, metrics[selectedMetric]);
-        var metricName = metricNames[selectedMetric];
-
-        heatmap.data(metricData);
-        heatmap.tooltipUnit(metricName);
-        heatmap();  // render the chart
-    }
-    */
 
 
 }());
