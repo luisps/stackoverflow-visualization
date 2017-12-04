@@ -3,60 +3,107 @@ const data = (function () {
     // Constants
     const PATH_CLUSTERS = 'data/{region}.stackoverflow.com_clusters.csv';
     const PATH_COMMUNITY = 'data/{region}.stackoverflow.com_community.csv';
+    const PATH_ICONS = 'data/icons.csv';
     const PATH_SKILLS = 'data/{region}.stackoverflow.com_skills.csv';
 
     // Variables
-    let $dispatcher = d3.dispatch('load'),
-        clusters = {},
-        links = {},
-        nodes = {}
+    let $dispatcher = d3.dispatch('load', 'icons', 'update'),
+        clusters,
+        icons,
+        links,
+        nodes,
+        dateMin,
+        dateMax
     ;
 
     return {
         $dispatcher,
-        clusters,
-        links,
-        nodes,
         load,
-        deltaLinks,
-        deltaNodes,
-        seriesNodes
     };
 
     function load(region) {
-        d3.csv(PATH_CLUSTERS.replace('{region}', region), (data) => {
-            console.time('data.load.clusters');
-            loadClusters(data);
-            console.timeEnd('data.load.clusters');
+        d3.csv(PATH_ICONS, (data) => {
+            console.time('data.load.icons');
+            loadIcons(data);
+            console.timeEnd('data.load.icons');
 
-            d3.csv(PATH_COMMUNITY.replace('{region}', region), (data) => {
-                console.time('data.load.community');
-                loadNodes(data);
-                console.timeEnd('data.load.community');
+            $dispatcher.call('icons', this, { icons });
+            d3.csv(PATH_CLUSTERS.replace('{region}', region), (data) => {
+                console.time('data.load.clusters');
+                loadClusters(data);
+                console.timeEnd('data.load.clusters');
 
-                d3.csv(PATH_SKILLS.replace('{region}', region), (data) => {
-                    console.time('data.load.skills');
-                    loadLinks(data);
-                    console.timeEnd('data.load.skills');
+                d3.csv(PATH_COMMUNITY.replace('{region}', region), (data) => {
+                    console.time('data.load.community');
+                    loadNodes(data);
+                    console.timeEnd('data.load.community');
 
-                    $dispatcher.call('load', this, { nodes: nodes[2017][8][1], links: links[2017][8] });
+                    d3.csv(PATH_SKILLS.replace('{region}', region), (data) => {
+                        console.time('data.load.skills');
+                        loadLinks(data);
+                        console.timeEnd('data.load.skills');
+
+                        $dispatcher.call('load', this, { dateMin, dateMax, nodes, links });
+                    });
                 });
             });
         });
+
+        // Event listeners
+        d3time.$dispatcher.on('update.data', update);
+    }
+
+    function update(data) {
+        console.time('data.time');
+        console.log('data.update()', 'dateStart', data.dateStart, 'dateEnd', data.dateEnd)      ;
+
+        let dateStart = data.dateStart,
+            dateEnd = data.dateEnd,
+
+            nodesDelta = deltaNodes(dateStart, dateEnd),
+            nodesSeries = seriesNodes(dateStart, dateEnd),
+            linksDelta = deltaLinks(dateStart, dateEnd, nodesDelta)
+        ;
+
+        $dispatcher.call('update', this, {
+            dateStart,
+            dateEnd,
+            delta: {
+                links: linksDelta,
+                nodes: nodesDelta
+            },
+            series: {
+                nodes: nodesSeries
+            }
+        });
+
+        console.timeEnd('data.time');
     }
 
     function loadClusters(data) {
+        clusters = {};
         data.forEach((row) => clusters['$' + row.tag] = '$' + row.cluster);
+
+        // Manual clusters
+        clusters['$django-admin'] = '$django';
+    }
+
+    function loadIcons(data) {
+        icons = {};
+        data.forEach((row) => icons[row.tag] = {
+            tag: row.tag,
+            icon: icons[row.tag] = 'img/icons/' + row.icon + '.png'
+        });
     }
 
     function loadLinks(data) {
+        links = {};
         data.forEach((row) => {
             let date = row['$date$'].split('-');
             let year = +date[0], month = +date[1];
 
             delete row['$date$'];
             Object.keys(row).forEach((key) => {
-                let count = +row[key];
                 let tag1 = '$' + key.split('$')[0];
                 let tag2 = '$' + key.split('$')[1];
 
@@ -70,7 +117,7 @@ const data = (function () {
                 nodesByMonthAndYear = nodesByMonthAndYear[Object.keys(nodesByMonthAndYear).pop()];
 
                 let cluster1Node = nodesByMonthAndYear[cluster1];
-                let link = _newLink(tag1, cluster1Node, tag2,  nodesByMonthAndYear[cluster2], count);
+                let link = _newLink(tag1, cluster1Node, tag2,  nodesByMonthAndYear[cluster2], row[key].split('-'));
 
                 if (cluster1 === cluster2) { // Same cluster
                     cluster1Node.childrenLinks.push(link);
@@ -84,7 +131,6 @@ const data = (function () {
     }
     function deltaLinks(dateStart, dateEnd, nodes) {
         console.time('data.deltaLinks');
-
         let linksStart = links[dateStart.year][dateStart.month],
             linksEnd = links[dateEnd.year][dateEnd.month],
             result = []
@@ -119,27 +165,31 @@ const data = (function () {
         return result;
     }
 
-    function _newLink(tag1, node1, tag2, node2, count) {
+    function _newLink(tag1, node1, tag2, node2, value) {
         return node1.cluster === node2.cluster ?
             {
                 source: tag1 === node1.cluster ? node1 : node1.children[tag1],
                 target: tag2 === node1.cluster ? node1 : node1.children[tag2],
-                value: count
+                rank: +value[1],
+                value: +value[0],
             } : {
                 source: node1,
                 target: node2,
-                value: count
+                rank: +value[1],
+                value: +value[0],
             };
     }
     function _subLink(linkEnd, linkStart) {
         return {
             source: linkStart.source,
             target: linkStart.target,
-            value: linkEnd.value - linkStart.value
+            rank: linkStart.rank,
+            value: linkEnd.value - linkStart.value,
         }
     }
 
     function loadNodes(data) {
+        nodes = {};
         data.forEach((row) => {
             let date = row['$date$'].split('-');
             let year = +date[0], month = +date[1], day = +date[2];
@@ -168,6 +218,18 @@ const data = (function () {
                 }
             });
         });
+
+        // Calculate dateMin and dateMax
+        let years = Object.keys(nodes).sort(),
+            yearStart = +years[0],
+            yearEnd = +years.pop()
+        ;
+        let monthStart = +Object.keys(nodes[yearStart])[0],
+            monthEnd = +Object.keys(nodes[yearEnd]).pop()
+        ;
+
+        dateMin = new Date(yearStart, monthStart - 1, 1);
+        dateMax = new Date(yearEnd, monthEnd - 1, 1);
     }
     function deltaNodes(dateStart, dateEnd) {
         console.time('data.deltaNodes');
@@ -197,9 +259,9 @@ const data = (function () {
         console.time('data.seriesNodes');
 
         // Calculate previous date
-        let previousDate = new Date(dateStart.date);
-        previousDate.setDate(dateStart.date.getDate() - 1);
-        previousDate = previousDate.getTime() < dateStart.date.getTime() ? dateStart.date : previousDate;
+        let previousDate = new Date(dateStart.year, dateStart.month - 1, dateStart.day);
+        previousDate.setDate(previousDate.getDate() - 1);
+        previousDate = previousDate.getTime() < dateMin.getTime() ? dateMin : previousDate;
 
         let result = {},
             resultDates = {};
@@ -243,7 +305,8 @@ const data = (function () {
             questioncount: +value[2],
             upvotes: +value[3],
             downvotes: +value[4],
-            linkCount: 0
+            linkCount: 0,
+            hasIcon: icons[tag] !== undefined
         };
 
         node.id = '$' + tag;
@@ -263,7 +326,8 @@ const data = (function () {
             upvotes: nodeEnd.upvotes - nodeStart.upvotes,
             downvotes: nodeEnd.downvotes - nodeStart.downvotes,
             linkCount: 0,
-            radius: nodeEnd.radius - nodeStart.radius
+            radius: nodeEnd.radius - nodeStart.radius,
+            hasIcon: nodeStart.hasIcon
         };
 
         // Sub children

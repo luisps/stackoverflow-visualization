@@ -1,9 +1,9 @@
 const d3graph = (function () {
 
     // Constants
-    const NODE_RADIUS_MIN = 8;
-    const NODE_RADIUS_MAX = 32;
-    const NODE_FILL = (n) => selected && n.tag === selected.tag ? '#F48024' : 'white';
+    const NODE_RADIUS_MIN = 12;
+    const NODE_RADIUS_MAX = 48;
+    const NODE_FILL = (n) => n.hasIcon ? 'url(#icon_' + n.tag + ')' : selected && n.tag === selected.tag ? '#F48024' : 'white';
     const NODE_STROKE = (n) => selected && n.tag === selected.tag ? '#F48024' : null;
     const NODE_STROKE_WIDTH = (n) => selected && n.tag === selected.tag ? '2' : null;
     const LABEL_VISIBILITY = (n) => (!selected || Object.keys(selected.children).length === 0) && (!hovered || n.$hover)/* || (n.$select || hovered && hovered.tag === n.tag)*/ ? 'visible' : 'hidden';
@@ -22,6 +22,7 @@ const d3graph = (function () {
         d3graphLinks = null,
         d3graphNodes = null,
         d3simulation = null,
+        linksRankScale = null,
         linksValueScale = null,
         linksOpacityScale = null,
         linksWidthScale = null,
@@ -42,11 +43,11 @@ const d3graph = (function () {
         // Simulation
         d3simulation = d3.forceSimulation()
             .force('center', d3.forceCenter(d3zoom.$dimensions().width / 2, d3zoom.$dimensions().height / 2))
-            .force('charge', d3.forceManyBody().strength(-300))
+            .force('charge', d3.forceManyBody().strength(-50))
             //.force('link', d3.forceLink().distance((l) => 1 / linksValueScale(l.value) + NODE_RADIUS_MAX * 3).strength((l) => linksValueScale(l.value)))
             .force('link', d3.forceLink()
-                .distance((l) => Math.min(l.source.linkCount, l.target.linkCount) + Math.max(nodesRadiusScale(l.source.radius), nodesRadiusScale(l.target.radius)) * 2)
-                .strength((l) => linksValueScale(l.value))
+                .distance((l) => 1 / linksValueScale(l.value))
+                .strength((l) => linksValueScale(l.value) / l.rank)
                 //.strength((l) => 1 / nodesRadiusScale(Math.max(l.source.radius, l.target.radius)))
             )
             .force('collision', d3.forceCollide().radius((n) => nodesRadiusScale(n.radius) * 1.25))
@@ -71,7 +72,8 @@ const d3graph = (function () {
         ;
 
         // Event listeners
-        d3time.$dispatcher.on('update.graph', load);
+        data.$dispatcher.on('icons.graph', loadIcons);
+        data.$dispatcher.on('update.graph', load);
     }
 
     function load(data) {
@@ -80,10 +82,53 @@ const d3graph = (function () {
         $links = data.delta.links;
         $nodes = Object.values(data.delta.nodes).filter((n) => n.linkCount > 0);
 
+        let banList = [
+            '$array',
+            '$animación',
+            '$arreglos',
+            '$aplicación-web',
+            '$base-de-datos',
+            '$batch',
+            '$buscador',
+            '$combobox',
+            '$datepicker',
+            '$fecha',
+            '$formularios',
+            '$funciones',
+            '$gridview',
+            '$imagen',
+            '$interfaz-gráfica',
+            '$list',
+            '$loops',
+            '$manejo-de-memoria',
+            '$map',
+            '$matemáticas',
+            '$matrices',
+            '$mobile',
+            '$mvc',
+            '$object',
+            '$optimización',
+            '$patrones-de-diseño',
+            '$rendimiento',
+            '$revisión-de-código',
+            '$scroll',
+            '$servicio',
+            '$timer',
+            '$trigger',
+            '$try-catch',
+            '$url',
+            '$webservice'
+        ];
+        $nodes = $nodes.filter((n) => banList.indexOf(n.id) === -1);
+        $links = $links.filter((l) => banList.indexOf(l.source.id) === -1 && banList.indexOf(l.target.id) === -1);
+
         // Update scales
+        linksRankScale = d3.scaleLinear()
+            .domain(d3.extent($links, (l) => l.rank))
+            .range([0.05, 1]);
         linksValueScale = d3.scaleLinear()
             .domain(d3.extent($links, (l) => l.value))
-            .range([0.1, 1]);
+            .range([0.05, 1]);
         linksOpacityScale = d3.scaleLinear()
             .domain(d3.extent($links, (l) => l.value))
             .range([0.15, 1]);
@@ -114,16 +159,17 @@ const d3graph = (function () {
         let nodes = d3graphNodes.selectAll('circle').data($nodes);
         nodes.exit().remove();          // Items to be removed
         nodes.enter().append('circle')  // Items to be added
-            .attr('fill', 'white')
+            .attr('fill', NODE_FILL)
             .attr('r', (n) => nodesRadiusScale(n.radius))
             .on('click', onNodeClick)
             .on('mouseover', onNodeMouseOver)
             .on('mouseout', onNodeMouseOut);
         nodes                           // Items to be updated
+            .attr('fill', NODE_FILL)
             .attr('r', (n) => nodesRadiusScale(n.radius));
 
         // Update labels
-        let labels = d3graphLabels.selectAll('text').data($nodes);
+        let labels = d3graphLabels.selectAll('text').data($nodes.filter((n) => !n.hasIcon));
         labels.exit().remove();         // Items to be removed
         labels.enter().append('text')   // Items to be added
             .text((n) => n.tag)
@@ -145,6 +191,23 @@ const d3graph = (function () {
         */
 
         console.timeEnd('d3graph.load');
+    }
+    function loadIcons(data) {
+        console.time('d3graph.loadIcons');
+        d3.selectAll('#zoom').select('defs')
+            .selectAll('pattern')
+            .data(Object.values(data.icons))
+            .enter().append('pattern')
+                .attr('id', (d) => 'icon_' + d.tag)
+                .attr('height', '100%')
+                .attr('width', '100%')
+                .attr('viewBox', '0 0 256 256')
+                .append('image')
+                    .attr('height', '256')
+                    .attr('width', '256')
+                    .attr('xlink:href', (d) => d.icon)
+        ;
+        console.timeEnd('d3graph.loadIcons');
     }
 
     function update() {
@@ -247,9 +310,10 @@ const d3graph = (function () {
         */
 
         d3graphNodes.selectAll('circle')
-            .attr('cx', (n) => n.x)
-            .attr('cy', (n) => n.y)
+            .attr('cx', (n) => n.x = Math.max(nodesRadiusScale(n.radius), Math.min(d3zoom.$dimensions().width - nodesRadiusScale(n.radius), n.x)))
+            .attr('cy', (n) => n.y = Math.max(nodesRadiusScale(n.radius), Math.min(d3zoom.$dimensions().height - nodesRadiusScale(n.radius), n.y)))
         ;
+
     }
 
 }());
