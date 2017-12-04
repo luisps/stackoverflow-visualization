@@ -5,7 +5,7 @@ import os
 def _transpose_write(path, path_tmp, data):
     with open(path_tmp, 'wt', newline='') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', lineterminator="\n")
-        writer.writerow(['$date$'] + list(map(lambda n: n[0], list(data.values())[0])))
+        writer.writerow(['$date$'] + list(map(lambda n: n[0], list(data.values())[len(data.values()) - 1])))
 
         for date in data:
             writer.writerow([date] + list(map(lambda n: n[1], data[date])))
@@ -25,7 +25,7 @@ def transpose_community(community):
         reader = csv.reader(file, delimiter=',', quotechar='"')
         header = next(reader, None)  # Skip the header
         if len(header) != 9:
-            exit("Invalid CSV file. Please make sure you're transposing the original output")
+            raise Exception("Invalid CSV file. Please make sure you're transposing the original output")
 
         for row in reader:
             year, month, day, tag, answercount, commentcount, questioncount, upvotes, downvotes = row
@@ -51,15 +51,15 @@ def transpose_skills(community):
     with open(path, 'rt') as file:
         reader = csv.reader(file, delimiter=',', quotechar='"')
         header = next(reader, None)  # Skip the header
-        if len(header) != 5:
-            exit("Invalid CSV file. Please make sure you're transposing the original output")
+        if len(header) != 6:
+            raise Exception("Invalid CSV file. Please make sure you're transposing the original output")
 
         for row in reader:
-            year, month, count, tag1, tag2 = row
+            year, month, count, tag1, tag2, rank = row
 
             column = '$'.join([tag1, tag2])
             key = '-'.join([year, month])
-            value = '-'.join([count])
+            value = '-'.join([count, rank])
 
             result = data.get(key, [])
             result.append((column, value))
@@ -69,5 +69,12 @@ def transpose_skills(community):
     _transpose_write(path, path_tmp, data)
 
 
-transpose_community('es.stackoverflow.com')
-transpose_skills('es.stackoverflow.com')
+try:
+    transpose_community('es.stackoverflow.com')
+except Exception:
+    pass
+
+try:
+    transpose_skills('es.stackoverflow.com')
+except Exception:
+    pass

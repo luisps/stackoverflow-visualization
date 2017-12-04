@@ -183,13 +183,24 @@ WHERE 1=1
 DROP TABLE IF EXISTS skills_accumulated;
 CREATE TABLE skills_accumulated AS
 SELECT
-	skills."year",
-	skills."month",
-	skills."count",
-	skills.tag1,
-	skills.tag2
+	*
 FROM
-	tmp_skills_accumulated skills INNER JOIN tags_tags tags
-		ON skills.tag1 = tags.tag1
-		AND skills.tag2 = tags.tag2
+	(SELECT
+		"year",
+		"month",
+		"count",
+		skills.tag1,
+		skills.tag2,
+		row_number() over (partition by "year", "month", skills.tag1 ORDER BY "count" DESC, skills.tag1) "rank"
+	FROM
+		tmp_skills_accumulated skills INNER JOIN tags_tags tags
+			ON skills.tag1 = tags.tag1
+			AND skills.tag2 = tags.tag2
+	) res
+WHERE
+	"rank" <= 10
 ;
+
+-- Delete excedent data
+DELETE FROM skills_accumulated WHERE "year"=2015 AND "month"=10;
+DELETE FROM skills_accumulated WHERE "year"=2017 AND "month"=8;
