@@ -1,12 +1,26 @@
 const d3time = (function () {
 
     // Constants
-    const TICK_FORMAT = '%b %y';
-    const TICK_NUM = 12;
+    const PADDING_BOTTOM = 20;
+    const PADDING_LEFT = 20;
+    const TRANSITION_DURATION = 150;
+    const TICK_FORMAT = (m) => {
+        //if (m === 0 || m === xScale.domain()[1] - 1) return '';
+        let year = dateMin.year + Math.floor((dateMin.month + m - 1) / 12),
+            month = (dateMin.month + m - 1) % 12;
+        return month === 0 ? year : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month];
+    };
 
     // Variables
-    let $dispatcher = d3.dispatch('update'),
-        timeSlider
+    let $brushed = false,
+        $dispatcher = d3.dispatch('update'),
+        d3brush,
+        d3svg,
+        d3svgDimensions,
+        dateMin,
+        dateMax,
+        xAxis,
+        xScale
     ;
 
     return {
@@ -15,79 +29,84 @@ const d3time = (function () {
     };
 
     function init() {
-        timeSlider = d3.slider()
-            .orient("bottom")
-            .axis(d3.axisBottom().ticks(TICK_NUM).tickFormat(d3.timeFormat(TICK_FORMAT)))
-        ;
+        d3svg = d3.select('#time');
+        d3svgDimensions = window.getComputedStyle(d3svg.node());
+        d3svgDimensions = { height: parseInt(d3svgDimensions.height), width: parseInt(d3svgDimensions.width) - PADDING_LEFT * 2 };
 
-        // Event listeners
-        timeSlider.on("end", update);
+        d3brush = d3.brushX()
+            .extent([[0, 0], [d3svgDimensions.width, d3svgDimensions.height]])
+            .on('end', brushed);
+
+        xScale = d3.scalePoint().range([0, d3svgDimensions.width]);
+        xAxis = d3.axisBottom(xScale).tickFormat(TICK_FORMAT);
+
+        d3svg.select('.axis').attr('transform', 'translate(' + PADDING_LEFT + ',' + (d3svgDimensions.height - PADDING_BOTTOM) + ')');
+        d3svg.select('.brush').attr('transform', 'translate(' + PADDING_LEFT + ',0)');
+
         data.$dispatcher.on('load.time', load);
-
     }
 
-    //the update for the time slider is called when the underlying dataset changes
-    //as the selected region changes, it's not called for each slide movement
-    function load() {
-        //calculate the dates on both ends of time slider
-        //we don't sort the keys' arrays since we rely on ES2015
-        //key order, which is already ordered for integers
-        let years = Object.keys(data.nodes),
-            yearStart = years[0],
-            yearEnd = years.pop()
-        ;
+    function load(data) {
+        console.time('time.load');
 
-        let monthStart = Object.keys(data.nodes[yearStart])[0],
-            monthEnd = Object.keys(data.nodes[yearEnd]).pop()
-        ;
+        // Note: time is represented as [dateMin, dateMax[
+        dateMin = { year: data.dateMin.getFullYear(), month: data.dateMin.getMonth() + 1, day: 1 };
+        dateMax = { year: data.dateMax.getFullYear(), month: data.dateMax.getMonth() + 2, day: 1 };
 
-        let dayStart = Object.keys(data.nodes[yearStart][monthStart])[0],
-            dayEnd = Object.keys(data.nodes[yearEnd][monthEnd]).pop()
-        ;
+        // Update X axis
+        let monthNum = (12 - dateMin.month + 1) + Math.max(0, dateMax.year - dateMin.year - 1) * 12 + dateMax.month;
+        xScale.domain(Array.from(Array(monthNum).keys()));
+        d3svg.select('.axis').call(xAxis);
 
-        let dateStart = Date.UTC(yearStart, monthStart - 1, dayStart),
-            dateEnd = Date.UTC(yearEnd, monthEnd - 1, dayEnd)
-        ;
+        // Update brush
+        d3svg.select('.brush')
+            .call(d3brush)
+            .call(d3brush.move,  xScale.range());
 
-        // Select last 3 months by default
-        let value = [
-            Date.UTC(yearEnd, monthEnd - 4, 1),
-            Date.UTC(yearEnd, monthEnd - 1, dayEnd)
-        ];
-
-        timeSlider
-            .scale(d3.scaleTime().domain([dateStart, dateEnd]))
-            .value(value);
-        d3.select('#time-slider').call(timeSlider);
-
-        update(null, value);
+        console.timeEnd('time.load');
     }
 
-    function update(e, value) {
-        console.clear();
+    // From https://bl.ocks.org/mbostock/34f08d5e11952a80609169b7917d4172
+    function brushed() {
+        if ($brushed)
+            return $brushed = false;
+        $brushed = true;
 
-        let dateStart = new Date(value[0]),
-            dateEnd = new Date(value[1])
-        ;
-        dateStart = { date: dateStart, year: dateStart.getFullYear(), month: dateStart.getMonth() + 1, day: dateStart.getDate() };
-        dateEnd = { date: dateEnd, year: dateEnd.getFullYear(), month: dateEnd.getMonth() + 1, day: dateEnd.getDate() };
+        let step = xScale.step(),
+            selection = d3.event.selection || xScale.range(),
+            selectionMax = xScale.range()[1] / step,
+            selectionStart = Math.round(selection[0] / step),
+            selectionEnd = Math.round(selection[1] / step);
 
-        let deltaNodes = data.deltaNodes(dateStart, dateEnd),
-            deltaLinks = data.deltaLinks(dateStart, dateEnd, deltaNodes),
-            seriesNodes = data.seriesNodes(dateStart, dateEnd)
-        ;
+        // Make sure at least 1 month is selected
+        if (selectionStart === selectionEnd)
+            if (selectionEnd === selectionMax)
+                selectionStart = selectionEnd - 1;
+            else
+                selectionEnd = selectionStart + 1;
 
-        $dispatcher.call('update', this, {
-            dateStart,
-            dateEnd,
-            delta: {
-                links: deltaLinks,
-                nodes: deltaNodes
-            },
-            series: {
-                nodes: seriesNodes
+        // Snap brush to selection
+        d3svg.select('.brush')
+            .transition().duration(TRANSITION_DURATION)
+            .call(d3brush.move,  [selectionStart * step, selectionEnd * step]);
+
+        let dateStart = { year: dateMin.year + Math.floor((dateMin.month + selectionStart - 1) / 12), month: (dateMin.month + selectionStart - 1) % 12 + 1, day: dateMin.day },
+            dateEnd = { year: dateMin.year + Math.floor((dateMin.month + selectionEnd  - 1) / 12), month: (dateMin.month + selectionEnd - 1) % 12 + 1, day: dateMin.day };
+
+        if (dateEnd.year === dateMax.year && dateEnd.month === dateMax.month && dateEnd.day === dateMax.day) {
+            let datePrevious = new Date(dateEnd.year, dateEnd.month - 1, dateEnd.day);
+            datePrevious.setDate(datePrevious.getDate() - 1);
+            dateEnd = { year: datePrevious.getFullYear(), month: datePrevious.getMonth() + 1, day: datePrevious.getDate() };
+
+            if (dateStart.year === dateEnd.year && dateStart.month === dateEnd.month) {
+                let datePrevious = new Date(dateStart.year, dateStart.month - 1, dateStart.day);
+                datePrevious.setDate(datePrevious.getDate() - 1);
+                dateStart = { year: datePrevious.getFullYear(), month: datePrevious.getMonth() + 1, day: datePrevious.getDate() };
             }
-        });
+        }
+
+        // Dispatch event
+        $dispatcher.call('update', this, { dateStart, dateEnd });
     }
 
 }());

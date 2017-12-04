@@ -21,15 +21,6 @@
     <link rel="stylesheet" type="text/css" href="libs/calendar-heatmap/calendar-heatmap.css">
     <script src="libs/calendar-heatmap/calendar-heatmap.js"></script>
 
-    <!-- Slick Slider -->
-    <link rel="stylesheet" type="text/css" href="libs/slick-1.8.0/slick/slick.css"/>
-    <link rel="stylesheet" type="text/css" href="libs/slick-1.8.0/slick/slick-theme.css"/>
-    <script type="text/javascript" src="libs/slick-1.8.0/slick/slick.min.js"></script>
-
-    <!-- Time Slider -->
-    <link rel="stylesheet" type="text/css" href="libs/time-slider/d3.slider.css"/>
-    <script type="text/javascript" src="libs/time-slider/d3.slider.js"></script>
-
     <!-- Source -->
     <script	src="src/d3bubble.js" charset="utf-8"></script>
     <script	src="src/d3graph.js" charset="utf-8"></script>
@@ -41,14 +32,16 @@
     <script	src="index.js" charset="utf-8"></script>
 </head>
 <body>
-<div id="time-slider"></div> <!-- only here temporarily -->
 <div class="mdl-layout mdl-js-layout" style="background: #eeeeee">
     <header class="mdl-layout__header" style="background: white;">
         <div class="mdl-layout__header-row">
             <!-- Title -->
-            <img src="img/logo.png" height="52" />
-            <!-- Add spacer, to align navigation to the right -->
-            <div class="mdl-layout-spacer"></div>
+            <img id="logo" src="img/logo.png" />
+            <!-- Time navigator -->
+            <svg id="time">
+                <g class="axis"></g>
+                <g class="brush"></g>
+            </svg>
             <!-- Right aligned menu below button -->
             <button id="demo-menu-lower-right"
                     class="mdl-button mdl-js-button mdl-button--icon">
@@ -68,16 +61,17 @@
         <div id="side-bar">
           <div class="calendar-heatmap"></div>
         </div>
-        <svg id="zoom" class="graph">
+        <svg id="zoom">
+            <defs></defs>
             <filter id="dropshadow">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="0"/> <!-- stdDeviation is how much to blur -->
-                <feOffset dx="0.5" dy="1" result="offsetblur"/> <!-- how much to offset -->
+                <feGaussianBlur in="SourceAlpha" stdDeviation="0"></feGaussianBlur> <!-- stdDeviation is how much to blur -->
+                <feOffset dx="0.5" dy="1" result="offsetblur"></feOffset> <!-- how much to offset -->
                 <feComponentTransfer>
-                    <feFuncA type="linear" slope="0.3"/> <!-- slope is the opacity of the shadow -->
+                    <feFuncA type="linear" slope="0.3"></feFuncA> <!-- slope is the opacity of the shadow -->
                 </feComponentTransfer>
                 <feMerge>
-                    <feMergeNode/> <!-- this contains the offset blurred image -->
-                    <feMergeNode in="SourceGraphic"/> <!-- this contains the element that the filter is applied to -->
+                    <feMergeNode></feMergeNode> <!-- this contains the offset blurred image -->
+                    <feMergeNode in="SourceGraphic"></feMergeNode> <!-- this contains the element that the filter is applied to -->
                 </feMerge>
             </filter>
             <g id="graph"></g>

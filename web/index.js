@@ -8,6 +8,3 @@ window.onload = function () {
     // TODO: in the future this will be called by the region dropdown
     data.load('es');
 };
-
-
-

@@ -1,3 +1,11 @@
+#logo, #time {
+    height: 52px;
+}
+
+#time {
+    flex-grow: 1
+}
+
 #side-bar {
 	position: absolute;
 	top: 70%;
@@ -31,16 +39,4 @@
   text-align: center;
   margin: 0 auto;
 
-}
-
-.slick-prev:before, .slick-next:before{
-      color:gray;
-}
-
-#time-slider {
-	position: absolute; 
-	left: 25%;
-	width: 65%;
-	top: 4%;
-	z-index: 1000;
 }
