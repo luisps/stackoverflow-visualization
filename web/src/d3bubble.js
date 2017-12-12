@@ -1,47 +1,41 @@
 const d3bubble = (function () {
 
     // Constants
-    const PADDING = 2;
+    const PADDING = 0;
 
     const LABEL_VISIBILITY = (n) => $hovered && n.data.tag === $hovered.data.tag ? 'visible' : 'hidden';
 
     // Private Variables
     let //$dispatcher = d3.dispatch('select', 'select.sidebar'),
         $hovered,
-        d3bubble = null,
-        d3translate
+        $node,
+        d3bubble
     ;
 
     return {
-        $d3select: () => d3bubble,
         init,
         moveTo
     };
 
     function init() {
-        d3bubble = d3.select('#bubble')
+        d3bubble = d3.select('#bubble').append('g')
             //.attr('filter', 'url(#dropshadow)')
         ;
-        d3translate = d3bubble.append('g');
 
         // Event listeners
         d3graph.$dispatcher.on('select.bubble', load);
+        d3graph.$dispatcher.on('tick.bubble', tick);
     }
 
     function load(selected) {
         let isVisible = selected && Object.keys(selected.children).length > 0;
-        d3translate.attr('display', isVisible ? 'initial' : 'none');
+        d3bubble.attr('display', isVisible ? 'initial' : 'none');
         if (!isVisible) return;
 
         console.time('d3bubble.update');
 
-        let node = this;
-        let nodeBB = {
-            height: +node.getAttribute('r') * 2,
-            width: +node.getAttribute('r') * 2,
-            x: +node.getAttribute('cx'),
-            y: +node.getAttribute('cy')
-        };
+        $node = this;
+        let nodeBB = _nodeBB($node);
 
         let root = d3.hierarchy({ name: selected.tag, children: Object.values(selected.children) })
             .sum((n) => n.radius)
@@ -54,11 +48,11 @@ const d3bubble = (function () {
         let nodes = pack(root).descendants();
 
         // Update circles
-        let circles = d3translate.selectAll('circle').data(nodes);
+        let circles = d3bubble.selectAll('circle').data(nodes);
         circles.exit().remove();                // Items to be removed
         circles.enter()                         // Items to be added
             .append('circle')
-            .attr('fill', (n) => n.height === 1 ? 'none' : 'white') // Hide the root
+            .attr('fill', (n) => n.height === 1 ? COLOR_PRIMARY : 'white') // Hide the root
             .attr('cx', (n) => n.x)
             .attr('cy', (n) => n.y)
             .attr('r', (n) => n.r)
@@ -71,7 +65,7 @@ const d3bubble = (function () {
         ;
 
         // Update labels
-        let labels = d3translate.selectAll('text').data(nodes);
+        let labels = d3bubble.selectAll('text').data(nodes);
         labels.exit().remove();
         labels.enter().append('text')
             .text((n) => n.data.tag)
@@ -89,23 +83,35 @@ const d3bubble = (function () {
 
 
         // Apply offset to stay on top of the selected node
-        moveTo(nodeBB);
+        _moveTo(nodeBB);
         console.timeEnd('d3bubble.update');
     }
 
     function update() {
         // Update labels
-        d3translate.selectAll('text')
+        d3bubble.selectAll('text')
             .attr('visibility', LABEL_VISIBILITY)
     }
 
-    function moveTo(targetBB) {
-        d3translate.attr('transform', 'translate(' + (targetBB.x + PADDING - targetBB.width / 2) + ',' + (targetBB.y + PADDING - targetBB.height / 2) + ')');
+    function _moveTo(targetBB) {
+        d3bubble.attr('transform', 'translate(' + (targetBB.x + PADDING - targetBB.width / 2) + ',' + (targetBB.y + PADDING - targetBB.height / 2) + ')');
+    }
+    function _nodeBB(node) {
+        return {
+            height: +node.getAttribute('r') * 2,
+            width: +node.getAttribute('r') * 2,
+            x: +node.getAttribute('cx'),
+            y: +node.getAttribute('cy')
+        };
     }
 
     function onCircleMouseOver(n) {
         $hovered = n;
         update();
+    }
+    function tick(e) {
+        if ($node)
+            _moveTo(_nodeBB($node));
     }
 
 })();

@@ -24,15 +24,15 @@ def transpose_community(community):
     with open(path, 'rt') as file:
         reader = csv.reader(file, delimiter=',', quotechar='"')
         header = next(reader, None)  # Skip the header
-        if len(header) != 9:
+        if len(header) != 10:
             raise Exception("Invalid CSV file. Please make sure you're transposing the original output")
 
         for row in reader:
-            year, month, day, tag, answercount, commentcount, questioncount, upvotes, downvotes = row
+            year, month, day, tag, answercount, commentcount, questioncount, upvotes, downvotes, offensivevotes = row
 
             column = tag
             key = '-'.join([year, month, day])
-            value = '-'.join([answercount, commentcount, questioncount, upvotes, downvotes])
+            value = '-'.join([answercount, commentcount, questioncount, upvotes, downvotes, offensivevotes])
 
             result = data.get(key, [])
             result.append((column, value))

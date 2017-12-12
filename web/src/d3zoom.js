@@ -30,8 +30,8 @@ const d3zoom = (function () {
                 let duration = d3.event.transform.k !== d3zoomTransform.k ? ZOOM_DURATION : 0;
                 d3zoomTransform = d3.event.transform;
 
-                d3bubble.$d3select().transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
-                d3graph.$d3select().transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
+                d3.select('#bubble').transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
+                d3.select('#graph').transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
             })
         ;
         d3svg.call(d3zoom);

@@ -1,11 +1,18 @@
 const d3time = (function () {
 
     // Constants
-    const PADDING_BOTTOM = 20;
+    const PADDING_BOTTOM = 16;
     const PADDING_LEFT = 20;
     const TRANSITION_DURATION = 150;
+    const FONT_SIZE = (m) => {
+        let month = (dateMin.month + m - 1) % 12;
+        return month === 0 ? '12px' : '11px';
+    };
+    const FONT_WEIGHT = (m) => {
+        let month = (dateMin.month + m - 1) % 12;
+        return month === 0 ? 'bold' : 'normal';
+    };
     const TICK_FORMAT = (m) => {
-        //if (m === 0 || m === xScale.domain()[1] - 1) return '';
         let year = dateMin.year + Math.floor((dateMin.month + m - 1) / 12),
             month = (dateMin.month + m - 1) % 12;
         return month === 0 ? year : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month];
@@ -14,13 +21,16 @@ const d3time = (function () {
     // Variables
     let $brushed = false,
         $dispatcher = d3.dispatch('update'),
+        d3area,
         d3brush,
         d3svg,
         d3svgDimensions,
         dateMin,
         dateMax,
         xAxis,
-        xScale
+        xScale,
+        xScale2,
+        yScale
     ;
 
     return {
@@ -28,26 +38,40 @@ const d3time = (function () {
         init
     };
 
+    // From https://bl.ocks.org/mbostock/34f08d5e11952a80609169b7917d4172
     function init() {
         d3svg = d3.select('#time');
         d3svgDimensions = window.getComputedStyle(d3svg.node());
-        d3svgDimensions = { height: parseInt(d3svgDimensions.height), width: parseInt(d3svgDimensions.width) - PADDING_LEFT * 2 };
+        d3svgDimensions = { height: parseInt(d3svgDimensions.height) - PADDING_BOTTOM, width: parseInt(d3svgDimensions.width) - PADDING_LEFT * 2 };
 
+        // Initialize scales
+        xScale = d3.scalePoint().range([0, d3svgDimensions.width]);
+        xScale2 = d3.scaleTime().range([0, d3svgDimensions.width]);
+        yScale = d3.scaleLinear().range([0, d3svgDimensions.height]);
+        xAxis = d3.axisTop(xScale).tickFormat(TICK_FORMAT);
+
+        // Initialize area
+        d3area = d3.area()
+            .curve(d3.curveMonotoneX)
+            .x((d) => xScale2(d.date))
+            .y0(d3svgDimensions.height)
+            .y1((d) => yScale(d.value))
+        ;
+
+        // Initialize brush
         d3brush = d3.brushX()
             .extent([[0, 0], [d3svgDimensions.width, d3svgDimensions.height]])
             .on('end', brushed);
 
-        xScale = d3.scalePoint().range([0, d3svgDimensions.width]);
-        xAxis = d3.axisBottom(xScale).tickFormat(TICK_FORMAT);
-
-        d3svg.select('.axis').attr('transform', 'translate(' + PADDING_LEFT + ',' + (d3svgDimensions.height - PADDING_BOTTOM) + ')');
-        d3svg.select('.brush').attr('transform', 'translate(' + PADDING_LEFT + ',0)');
+        d3svg.select('.area').attr('transform', 'translate(' + PADDING_LEFT + ', 0)').attr('fill', COLOR_PRIMARY);
+        d3svg.select('.axis').attr('transform', 'translate(' + PADDING_LEFT + ',' + d3svgDimensions.height + ')');
+        d3svg.select('.brush').attr('transform', 'translate(' + PADDING_LEFT + ', 0)').attr('stroke-width', '0');
 
         data.$dispatcher.on('load.time', load);
     }
 
     function load(data) {
-        console.time('time.load');
+        console.time('d3time.load');
 
         // Note: time is represented as [dateMin, dateMax[
         dateMin = { year: data.dateMin.getFullYear(), month: data.dateMin.getMonth() + 1, day: 1 };
@@ -57,16 +81,24 @@ const d3time = (function () {
         let monthNum = (12 - dateMin.month + 1) + Math.max(0, dateMax.year - dateMin.year - 1) * 12 + dateMax.month;
         xScale.domain(Array.from(Array(monthNum).keys()));
         d3svg.select('.axis').call(xAxis);
+        d3svg.selectAll('.axis text')
+            .attr('font-size', FONT_SIZE)
+            .attr('font-weight', FONT_WEIGHT)
+            .attr('transform', 'translate(0, 22)');
 
-        // Update brush
+        // Update area
+        xScale2.domain(d3.extent(data.community, (d) => d.date));
+        yScale.domain([d3.max(data.community, (d) => d.value), 0]);
+        d3svg.select('.area').datum(data.community).attr('d', d3area);
+
+        // Update brush (select the last 6 months by default)
         d3svg.select('.brush')
             .call(d3brush)
-            .call(d3brush.move,  xScale.range());
+            .call(d3brush.move, [xScale(monthNum - 6), xScale(monthNum - 1)]);
 
-        console.timeEnd('time.load');
+        console.timeEnd('d3time.load');
     }
 
-    // From https://bl.ocks.org/mbostock/34f08d5e11952a80609169b7917d4172
     function brushed() {
         if ($brushed)
             return $brushed = false;

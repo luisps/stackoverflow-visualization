@@ -1,20 +1,27 @@
 const d3graph = (function () {
 
     // Constants
-    const NODE_RADIUS_MIN = 12;
+    const NODE_RADIUS_MIN = 16;
     const NODE_RADIUS_MAX = 48;
-    const NODE_FILL = (n) => n.hasIcon ? 'url(#icon_' + n.tag + ')' : selected && n.tag === selected.tag ? '#F48024' : 'white';
-    const NODE_STROKE = (n) => selected && n.tag === selected.tag ? '#F48024' : null;
+    const NODE_FILL = (n) => n.hasIcon ? 'url(#icon_' + n.tag + ')' : selected && n.tag === selected.tag ? COLOR_PRIMARY : 'white';
+    const NODE_STROKE = (n) => selected && n.tag === selected.tag ? COLOR_PRIMARY : null;
     const NODE_STROKE_WIDTH = (n) => selected && n.tag === selected.tag ? '2' : null;
+    const NODE_TAG = (n) => {
+        switch(n.tag) {
+            case 'google-apps-script': return 'google\napps';
+            case 'git-commit': return 'git';
+            default: return n.tag.replace(/-/g, '\n');
+        }
+    };
     const LABEL_VISIBILITY = (n) => (!selected || Object.keys(selected.children).length === 0) && (!hovered || n.$hover)/* || (n.$select || hovered && hovered.tag === n.tag)*/ ? 'visible' : 'hidden';
     //const LABEL_SOURCE_VISIBILITY = (l) => !selected && !hovered || hovered && l.source.tag === hovered.tag || selected && l.source.tag === selected.tag ? 'visible' : 'hidden';
     //const LABEL_TARGET_VISIBILITY = (l) => hovered && l.target.tag === hovered.tag || selected && l.target.tag === selected.tag ? 'visible' : 'hidden';
-    const LINK_STROKE = (l) => selected && (l.source.tag === selected.tag || l.target.tag === selected.tag) ? '#F48024' : '#BBB';
+    const LINK_STROKE = (l) => selected && (l.source.tag === selected.tag || l.target.tag === selected.tag) ? COLOR_PRIMARY : '#BBB';
     const LINK_STROKE_WIDTH = (l) => selected && (l.source.tag === selected.tag || l.target.tag === selected.tag) ? 1 + linksWidthScale(l.value) :
                                      hovered && (l.source.tag === hovered.tag || l.target.tag === hovered.tag) ? 1 + linksWidthScale(l.value) : 0;
 
     // Private Variables
-    let $dispatcher = d3.dispatch('select'),
+    let $dispatcher = d3.dispatch('select', 'tick'),
         $nodes = null,
         $links = null,
         d3graph = null,
@@ -46,7 +53,7 @@ const d3graph = (function () {
             .force('charge', d3.forceManyBody().strength(-50))
             //.force('link', d3.forceLink().distance((l) => 1 / linksValueScale(l.value) + NODE_RADIUS_MAX * 3).strength((l) => linksValueScale(l.value)))
             .force('link', d3.forceLink()
-                .distance((l) => 1 / linksValueScale(l.value))
+                .distance((l) => 1 / linksValueScale(l.value) + NODE_RADIUS_MIN * 2)
                 .strength((l) => linksValueScale(l.value) / l.rank)
                 //.strength((l) => 1 / nodesRadiusScale(Math.max(l.source.radius, l.target.radius)))
             )
@@ -79,48 +86,8 @@ const d3graph = (function () {
     function load(data) {
         console.time('d3graph.load');
 
-        $links = data.delta.links;
-        $nodes = Object.values(data.delta.nodes).filter((n) => n.linkCount > 0);
-
-        let banList = [
-            '$array',
-            '$animación',
-            '$arreglos',
-            '$aplicación-web',
-            '$base-de-datos',
-            '$batch',
-            '$buscador',
-            '$combobox',
-            '$datepicker',
-            '$fecha',
-            '$formularios',
-            '$funciones',
-            '$gridview',
-            '$imagen',
-            '$interfaz-gráfica',
-            '$list',
-            '$loops',
-            '$manejo-de-memoria',
-            '$map',
-            '$matemáticas',
-            '$matrices',
-            '$mobile',
-            '$mvc',
-            '$object',
-            '$optimización',
-            '$patrones-de-diseño',
-            '$rendimiento',
-            '$revisión-de-código',
-            '$scroll',
-            '$servicio',
-            '$timer',
-            '$trigger',
-            '$try-catch',
-            '$url',
-            '$webservice'
-        ];
-        $nodes = $nodes.filter((n) => banList.indexOf(n.id) === -1);
-        $links = $links.filter((l) => banList.indexOf(l.source.id) === -1 && banList.indexOf(l.target.id) === -1);
+        $links = data.links;
+        $nodes = Object.values(data.nodes).filter((n) => n.linkCount > 0);
 
         // Update scales
         linksRankScale = d3.scaleLinear()
@@ -131,10 +98,10 @@ const d3graph = (function () {
             .range([0.05, 1]);
         linksOpacityScale = d3.scaleLinear()
             .domain(d3.extent($links, (l) => l.value))
-            .range([0.15, 1]);
+            .range([0.2, 1]);
         linksWidthScale = d3.scaleLinear()
             .domain(d3.extent($links, (l) => l.value))
-            .range([0, 2]);
+            .range([0, 6]);
         nodesRadiusScale = d3.scaleLog()
             .domain(d3.extent($nodes, (n) => n.radius))
             .range([NODE_RADIUS_MIN, NODE_RADIUS_MAX]);
@@ -169,11 +136,18 @@ const d3graph = (function () {
             .attr('r', (n) => nodesRadiusScale(n.radius));
 
         // Update labels
-        let labels = d3graphLabels.selectAll('text').data($nodes.filter((n) => !n.hasIcon));
-        labels.exit().remove();         // Items to be removed
-        labels.enter().append('text')   // Items to be added
-            .text((n) => n.tag)
-            .attr('text-anchor', 'middle');
+        let labels = d3graphLabels.selectAll('foreignObject').data($nodes.filter((n) => !n.hasIcon));
+        labels.exit().remove();                     // Items to be removed
+        labels.enter().append('foreignObject')      // Items to be added
+            .attr('height', (n) => nodesRadiusScale(n.radius) * 2)
+            .attr('width', (n) => nodesRadiusScale(n.radius) * 2)
+            .append('xhtml:p')
+                .text(NODE_TAG);
+        labels
+            .attr('height', (n) => nodesRadiusScale(n.radius) * 2)
+            .attr('width', (n) => nodesRadiusScale(n.radius) * 2)
+            .select('p')
+                .text(NODE_TAG);
 
         /*
         let labels = d3graphLabels.selectAll('g').data($links);
@@ -236,9 +210,11 @@ const d3graph = (function () {
             .attr('stroke-width', NODE_STROKE_WIDTH)
         ;
 
+        /*
         // Update labels
         d3graphLabels.selectAll('text')
             .attr('visibility', LABEL_VISIBILITY)
+        */
 
         /*
         d3graphLabels.selectAll('g .source')
@@ -296,9 +272,9 @@ const d3graph = (function () {
             .attr("x2", (l) => l.target.x)
             .attr("y2", (l) => l.target.y);
 
-        d3graphLabels.selectAll('text')
-            .attr('x', (n) => n.x)
-            .attr('y', (n) => n.y - nodesRadiusScale(n.radius) - 4)
+        d3graphLabels.selectAll('foreignObject')
+            .attr('x', (n) => n.x - nodesRadiusScale(n.radius))
+            .attr('y', (n) => n.y - nodesRadiusScale(n.radius))
         ;
         /*
         d3graphLabels.selectAll('g .source')
@@ -314,6 +290,8 @@ const d3graph = (function () {
             .attr('cy', (n) => n.y = Math.max(nodesRadiusScale(n.radius), Math.min(d3zoom.$dimensions().height - nodesRadiusScale(n.radius), n.y)))
         ;
 
+        // Dispatch event
+        $dispatcher.call('tick', this);
     }
 
 }());

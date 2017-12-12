@@ -11,9 +11,6 @@ const d3heatmap = (function () {
 
     function init() {
 
-		// Set custom color for the calendar heatmap
-        var color = '#F48024';
-
         // Set overview type (choices are global, year, month and week)
         var overview = 'year';
 
@@ -23,7 +20,7 @@ const d3heatmap = (function () {
         };
 
         // Initialize calendar heatmap
-        calendarHeatmap.init(color, overview, print);
+        calendarHeatmap.init(COLOR_PRIMARY, overview, print);
 
         // Event listeners
         //data.$dispatcher.on('load.heatmap', load);

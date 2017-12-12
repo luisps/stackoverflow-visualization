@@ -55,11 +55,14 @@ CREATE TABLE community_votes_by_creationdate_postid AS
             ELSE 0 END)                  upvotes,
         SUM(CASE WHEN votetypeid = 3
             THEN 1
-            ELSE 0 END)                  downvotes
+            ELSE 0 END)                  downvotes,
+        SUM(CASE WHEN votetypeid = 4
+            THEN 1
+            ELSE 0 END)                  offensivevotes
     FROM
         votes
     WHERE 1 = 1
-        AND votetypeid IN (2, 3)
+        AND votetypeid IN (2, 3, 4)
     GROUP BY
         DATE_PART('YEAR', creationdate),
         DATE_PART('MONTH', creationdate),
@@ -83,6 +86,7 @@ CREATE TABLE community_posts_votes_merged AS
         --viewcount,
         COALESCE(upvotes, 0)   upvotes,
         COALESCE(downvotes, 0) downvotes,
+        COALESCE(offensivevotes, 0) offensivevotes,
         tags
     FROM
         community_posts_by_creationdate_postid_tags posts
@@ -102,12 +106,13 @@ CREATE TABLE community AS
         "month",
         "day",
         tag,
-        SUM(answercount)   answercount,
-        SUM(commentcount)  commentcount,
-        SUM(questioncount) questioncount,
+        SUM(answercount)   	answercount,
+        SUM(commentcount)  	commentcount,
+        SUM(questioncount) 	questioncount,
         --viewcount,
-        SUM(upvotes)       upvotes,
-        SUM(downvotes)     downvotes
+        SUM(upvotes)       	upvotes,
+        SUM(downvotes)     	downvotes,
+        SUM(offensivevotes) offensivevotes
     FROM
         community_posts_votes_merged posts,
         unnest(string_to_array(posts.tags, '><')) tag
@@ -155,7 +160,8 @@ SELECT
 	COALESCE(SUM(community.commentcount), 0)	commentcount,
 	COALESCE(SUM(community.questioncount), 0)	questioncount,
 	COALESCE(SUM(community.upvotes), 0)			upvotes,
-	COALESCE(SUM(community.downvotes), 0)		downvotes
+	COALESCE(SUM(community.downvotes), 0)		downvotes,
+	COALESCE(SUM(community.offensivevotes), 0)	offensivevotes
 FROM
 	community_all_tags_by_year_month_day tags LEFT JOIN community
 		ON community.tag = tags.tag
@@ -192,10 +198,12 @@ SELECT
 	commentcount,
 	questioncount,
 	upvotes,
-	downvotes
+	downvotes,
+	offensivevotes
 FROM
 	tmp_community_accumulated accumulated INNER JOIN tags
 		ON accumulated.tag=tags.tag
+		AND NOT EXISTS (SELECT tag FROM tags_blacklist WHERE tags_blacklist.tag=tags.tag)
 ORDER BY
 	"year", "month", "day", tags.tag
 ;

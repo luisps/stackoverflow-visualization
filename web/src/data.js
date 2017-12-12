@@ -43,7 +43,7 @@ const data = (function () {
                         loadLinks(data);
                         console.timeEnd('data.load.skills');
 
-                        $dispatcher.call('load', this, { dateMin, dateMax, nodes, links });
+                        $dispatcher.call('load', this, { dateMin, dateMax, community: seriesCommunity() });
                     });
                 });
             });
@@ -61,20 +61,15 @@ const data = (function () {
             dateEnd = data.dateEnd,
 
             nodesDelta = deltaNodes(dateStart, dateEnd),
-            nodesSeries = seriesNodes(dateStart, dateEnd),
+            //nodesSeries = seriesNodes(dateStart, dateEnd),
             linksDelta = deltaLinks(dateStart, dateEnd, nodesDelta)
         ;
 
         $dispatcher.call('update', this, {
             dateStart,
             dateEnd,
-            delta: {
-                links: linksDelta,
-                nodes: nodesDelta
-            },
-            series: {
-                nodes: nodesSeries
-            }
+            links: linksDelta,
+            nodes: nodesDelta
         });
 
         console.timeEnd('data.time');
@@ -83,9 +78,6 @@ const data = (function () {
     function loadClusters(data) {
         clusters = {};
         data.forEach((row) => clusters['$' + row.tag] = '$' + row.cluster);
-
-        // Manual clusters
-        clusters['$django-admin'] = '$django';
     }
 
     function loadIcons(data) {
@@ -264,7 +256,8 @@ const data = (function () {
         previousDate = previousDate.getTime() < dateMin.getTime() ? dateMin : previousDate;
 
         let result = {},
-            resultDates = {};
+            resultDates = {} // To save memory, we reuse the Date objects
+        ;
 
         Object.keys(nodes[dateStart.year][dateStart.month][dateStart.day]).forEach((tag) => {
             let nodeStart = nodes[previousDate.getFullYear()][previousDate.getMonth() + 1][previousDate.getDate()][tag];
@@ -305,6 +298,7 @@ const data = (function () {
             questioncount: +value[2],
             upvotes: +value[3],
             downvotes: +value[4],
+            offensivevotes: +value[5],
             linkCount: 0,
             hasIcon: icons[tag] !== undefined
         };
@@ -325,6 +319,7 @@ const data = (function () {
             questioncount: nodeEnd.questioncount - nodeStart.questioncount,
             upvotes: nodeEnd.upvotes - nodeStart.upvotes,
             downvotes: nodeEnd.downvotes - nodeStart.downvotes,
+            offensivevotes: nodeEnd.offensivevotes - nodeStart.offensivevotes,
             linkCount: 0,
             radius: nodeEnd.radius - nodeStart.radius,
             hasIcon: nodeStart.hasIcon
@@ -339,6 +334,42 @@ const data = (function () {
         }
 
         return node;
+    }
+
+    function seriesCommunity() {
+        console.time('data.seriesCommunity');
+
+        let dateStart = { year: dateMin.getFullYear(), month: dateMin.getMonth() + 1, day: dateMin.getDate() },
+            dateEnd = { year: dateMax.getFullYear(), month: dateMax.getMonth() + 1, day: dateMax.getDate() },
+            year = dateStart.year,
+            month = dateStart.month,
+            day = dateStart.day
+        ;
+
+        let valueStart = 0,
+            valueEnd = 0,
+            series = [],
+            tags = Object.keys(nodes[dateStart.year][dateStart.month][dateStart.day]);
+
+        for (; year <= dateEnd.year && nodes[year]; year ++) {
+            for (; (year < dateEnd.year || month <= dateEnd.month) && nodes[year][month]; month ++) {
+                    valueEnd = 0;
+                    tags.forEach((tag) => {
+                        let node = nodes[year][month][day][tag];
+                        valueEnd += node.answercount + node.commentcount + node.questioncount + node.upvotes + node.downvotes;
+                    });
+
+                    series.push({
+                        date: new Date(Date.UTC(year, month - 1, day)),
+                        value: valueEnd - valueStart
+                    });
+                    valueStart = valueEnd;
+            }
+            month = 1;
+        }
+
+        console.timeEnd('data.seriesCommunity');
+        return series;
     }
 
 }());

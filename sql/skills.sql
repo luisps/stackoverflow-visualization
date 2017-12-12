@@ -178,6 +178,8 @@ WHERE 1=1
 	AND "year" = 2017
 	AND "month" = 8
 	AND "count" > (SELECT MAX("count") * 0.01 FROM tmp_skills_accumulated)
+	AND NOT EXISTS (SELECT tag FROM tags_blacklist WHERE tags_blacklist.tag=tag1)
+	AND NOT EXISTS (SELECT tag FROM tags_blacklist WHERE tags_blacklist.tag=tag2)
 ;
 
 DROP TABLE IF EXISTS skills_accumulated;
