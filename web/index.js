@@ -2,6 +2,8 @@ window.onload = function () {
     d3zoom.init();
     d3bubble.init();
     d3graph.init();
+    d3votes.init();
+    d3donut.init();
     d3heatmap.init();
     d3time.init();
 

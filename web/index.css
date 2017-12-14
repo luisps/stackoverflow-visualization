@@ -1,25 +1,77 @@
 #side-bar {
 	position: absolute;
-	top: 70%;
-	bottom: 0;
-	width: 100%;
+	left: 0;
+	width: 40%;
+	height: 100%;
 	background-color: white;
 }
 
 #zoom {
 	position: absolute;
-	height: 70%;
-	width: 100%;
+	right: 0;
+	width: 60%;
+	height: 100%;
 }
+
 #zoom text {
     pointer-events: none;
 }
 
-.heatmap-container {
-  position: relative;
-  padding-top: 30px;
-  left: -20px;
-  display: inline-block;
+.calendar-heatmap {
+  top: 5%;
+  height: 40%;
+}
+
+.votes {
+  position: absolute;
+  top: 40%;
+  height: 25%;
+  width: 80%;
+  margin: 0 auto;
+}
+
+.votes line {
+	stroke: gray;
+	stroke-width: 0.5;
+}
+
+.upvotes-bar {
+	fill: #90EE90;
+}
+
+.downvotes-bar {
+	fill: #ef3d47;
+}
+
+.tooltip {   
+	position: absolute;           
+	text-align: center;           
+	display: inline-block;
+	padding: 2px;             
+	font: 12px sans-serif;        
+	background: #fad44f;   
+	border: 0px;      
+	border-radius: 8px;           
+	pointer-events: none;         
+}
+
+.donut-children, .donut-related {
+  position: absolute;
+  bottom: 5%;
+  height: 150px;
+}
+
+.donut-children {
+  left: 20px;
+}
+
+.donut-related {
+  right: 20px;
+}
+
+.donut-legend text {
+	font: Verdana;
+	font-size: 14px;
 }
 
 .metrics {
@@ -43,4 +95,8 @@
 	width: 65%;
 	top: 4%;
 	z-index: 1000;
+}
+
+#time-slider .d3-slider-axis {
+	pointer-events: none;
 }
