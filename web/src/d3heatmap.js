@@ -25,9 +25,7 @@ const d3heatmap = (function () {
         // Event listeners
         //data.$dispatcher.on('load.heatmap', load);
 
-        d3graph.$dispatcher.on('select', (selected) => {
-            if (!selected) return;
-
+        d3graph.$dispatcher.on('select.heatmap', (selected) => {
             selectedTag = selected.id;
             selectTag();
         })

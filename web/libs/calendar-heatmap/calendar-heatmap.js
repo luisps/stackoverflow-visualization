@@ -74,9 +74,16 @@ var calendarHeatmap = {
       var colIndex = Math.trunc(dayIndex / 7);
       var numWeeks = colIndex + 1;
 
-      calendarHeatmap.settings.width = container.offsetWidth < 1000 ? 1000 : container.offsetWidth;
-      calendarHeatmap.settings.item_size = ((calendarHeatmap.settings.width - calendarHeatmap.settings.label_padding) / numWeeks - calendarHeatmap.settings.gutter);
-      calendarHeatmap.settings.height = calendarHeatmap.settings.label_padding + 7 * (calendarHeatmap.settings.item_size + calendarHeatmap.settings.gutter);
+      //calendarHeatmap.settings.width = container.offsetWidth < 1000 ? 1000 : container.offsetWidth;
+      //calendarHeatmap.settings.item_size = ((calendarHeatmap.settings.width - calendarHeatmap.settings.label_padding) / numWeeks - calendarHeatmap.settings.gutter);
+      //calendarHeatmap.settings.height = calendarHeatmap.settings.label_padding + 7 * (calendarHeatmap.settings.item_size + calendarHeatmap.settings.gutter);
+
+      //use all available space
+      calendarHeatmap.settings.width = container.offsetWidth;
+      calendarHeatmap.settings.height = container.offsetHeight;
+
+      calendarHeatmap.settings.item_size = ((calendarHeatmap.settings.height - calendarHeatmap.settings.label_padding) / 7 - calendarHeatmap.settings.gutter);
+
       svg.attr('width', calendarHeatmap.settings.width)
         .attr('height', calendarHeatmap.settings.height);
 
