@@ -71,6 +71,9 @@ const d3time = (function () {
     }
 
     function load(data) {
+        $dispatcher.call('update', this, { year: 2017 });
+        return;
+
         console.time('d3time.load');
 
         // Note: time is represented as [dateMin, dateMax[

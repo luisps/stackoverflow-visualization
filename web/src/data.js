@@ -24,26 +24,26 @@ const data = (function () {
     function load(region) {
         d3.csv(PATH_ICONS, (data) => {
             console.time('data.load.icons');
-            loadIcons(data);
+            iconsLoad(data);
             console.timeEnd('data.load.icons');
 
             $dispatcher.call('icons', this, { icons });
             d3.csv(PATH_CLUSTERS.replace('{region}', region), (data) => {
-                console.time('data.load.clusters');
-                loadClusters(data);
-                console.timeEnd('data.load.clusters');
+                console.time('data.load.$clusters');
+                clustersLoad(data);
+                console.timeEnd('data.load.$clusters');
 
                 d3.csv(PATH_COMMUNITY.replace('{region}', region), (data) => {
                     console.time('data.load.community');
-                    loadNodes(data);
+                    nodesLoad(data);
                     console.timeEnd('data.load.community');
 
                     d3.csv(PATH_SKILLS.replace('{region}', region), (data) => {
                         console.time('data.load.skills');
-                        loadLinks(data);
+                        linksLoad(data);
                         console.timeEnd('data.load.skills');
 
-                        $dispatcher.call('load', this, { dateMin, dateMax, community: seriesCommunity() });
+                        $dispatcher.call('load', this, { dateMin, dateMax });
                     });
                 });
             });
@@ -55,6 +55,28 @@ const data = (function () {
 
     function update(data) {
         console.time('data.time');
+
+        let nodes = nodesByYear(data.year),
+            links = linksByYear(data.year)
+        ;
+
+        // Merge links with nodes
+        links.forEach((link) => {
+            link.source = nodes[link.tag1];
+            link.target = nodes[link.tag2];
+
+            link.source.$links = link.source.$links || [];
+            link.source.$links.push(link);
+            link.target.$links = link.target.$links || [];
+            link.target.$links.push(link);
+        });
+
+        $dispatcher.call('update', this, {
+            nodes: Object.values(nodes),
+            links
+        });
+
+        /*
         console.log('data.update()', 'dateStart', data.dateStart, 'dateEnd', data.dateEnd)      ;
 
         let dateStart = data.dateStart,
@@ -71,305 +93,239 @@ const data = (function () {
             links: linksDelta,
             nodes: nodesDelta
         });
+        */
 
         console.timeEnd('data.time');
     }
 
-    function loadClusters(data) {
+    function clustersLoad(data) {
         clusters = {};
-        data.forEach((row) => clusters['$' + row.tag] = '$' + row.cluster);
+        data.forEach((row) => clusters[row.tag] = row.cluster);
     }
 
-    function loadIcons(data) {
+    function iconsLoad(data) {
         icons = {};
         data.forEach((row) => icons[row.tag] = {
-            tag: row.tag,
-            icon: icons[row.tag] = 'img/icons/' + row.icon + '.png'
+            id: 'icon_' + row.icon,
+            url: 'img/icons/' + row.icon + '.png'
         });
     }
 
-    function loadLinks(data) {
+    function linksLoad(data) {
         links = {};
         data.forEach((row) => {
-            let date = row['$date$'].split('-');
-            let year = +date[0], month = +date[1];
+            let year = +row['year'];
 
-            delete row['$date$'];
-            Object.keys(row).forEach((key) => {
-                let tag1 = '$' + key.split('$')[0];
-                let tag2 = '$' + key.split('$')[1];
+            let tag1 = row['tag1'],
+                tag2 = row['tag2'],
+                cluster1 = clusters[tag1],
+                cluster2 = clusters[tag2];
 
-                let cluster1 = clusters[tag1];
-                let cluster2 = clusters[tag2];
-                if (cluster1 !== cluster2 && (tag1 !== cluster1 || tag2 !== cluster2)) return; // Remove links between children from different parents
-                if (cluster1 === cluster2 && (tag1 === cluster1 || tag2 === cluster2)) return; // Remove links between child and parent
+            // Remove links between children from different parents
+            // Remove links between siblings
+            if (cluster1 !== cluster2 && (tag1 !== cluster1 || tag2 !== cluster2)) return;
+            if (cluster1 === cluster2) return;
 
-                let nodesByYear = nodes[year];
-                let nodesByMonthAndYear = nodesByYear[month];
-                nodesByMonthAndYear = nodesByMonthAndYear[Object.keys(nodesByMonthAndYear).pop()];
+            let link = _linksNew(
+                row['tag1'],
+                row['tag2'],
+                +row['count'],
+                +row['rank1'],
+                +row['rank2']
+            );
 
-                let cluster1Node = nodesByMonthAndYear[cluster1];
-                let link = _newLink(tag1, cluster1Node, tag2,  nodesByMonthAndYear[cluster2], row[key].split('-'));
-
-                if (cluster1 === cluster2) { // Same cluster
-                    cluster1Node.childrenLinks.push(link);
-                } else { // Different clusters
-                    let linksByYear = links[year] = links[year] || {};
-                    let linksByMonthAndYear = linksByYear[month] = linksByYear[month] || [];
-                    linksByMonthAndYear.push(link);
-                }
-            });
+            let linksByYear = links[year] = links[year] || [];
+                linksByYear.push(link);
         });
     }
-    function deltaLinks(dateStart, dateEnd, nodes) {
-        console.time('data.deltaLinks');
-        let linksStart = links[dateStart.year][dateStart.month],
-            linksEnd = links[dateEnd.year][dateEnd.month],
-            result = []
-        ;
-
-        for (let i = 0; i < linksStart.length; i ++) {
-            let linkStart = linksStart[i],
-                linkEnd = linksEnd[i],
-                resultLink = _subLink(linkEnd, linkStart)
-            ;
-
-            let sourceNode = nodes[linkStart.source.id],
-                targetNode = nodes[linkStart.target.id]
-            ;
-
-            // Ignore links which don't have any activity during the selected period
-            if (resultLink.value === 0 || sourceNode === undefined || targetNode === undefined)
-                continue;
-
-            sourceNode.linkCount ++;
-            targetNode.linkCount ++;
-
-            resultLink.source = sourceNode;
-            resultLink.target = targetNode;
-
-            (sourceNode.cluster === targetNode.cluster) ?
-                sourceNode.childrenLinks.push(resultLink) : // Same cluster
-                result.push(resultLink);                    // Different clusters
-        }
-
-        console.timeEnd('data.deltaLinks');
-        return result;
+    function linksByYear(year) {
+        return links[year];
     }
 
-    function _newLink(tag1, node1, tag2, node2, value) {
-        return node1.cluster === node2.cluster ?
-            {
-                source: tag1 === node1.cluster ? node1 : node1.children[tag1],
-                target: tag2 === node1.cluster ? node1 : node1.children[tag2],
-                rank: +value[1],
-                value: +value[0],
-            } : {
-                source: node1,
-                target: node2,
-                rank: +value[1],
-                value: +value[0],
-            };
-    }
-    function _subLink(linkEnd, linkStart) {
+    function _linksNew(tag1, tag2, value, rank1, rank2) {
         return {
-            source: linkStart.source,
-            target: linkStart.target,
-            rank: linkStart.rank,
-            value: linkEnd.value - linkStart.value,
-        }
+            tag1,
+            tag2,
+            value,
+            rank: rank1 < rank2 ? rank1 : rank2,
+            rank1,
+            rank2
+        };
     }
 
-    function loadNodes(data) {
+    function nodesLoad(data) {
         nodes = {};
         data.forEach((row) => {
-            let date = row['$date$'].split('-');
-            let year = +date[0], month = +date[1], day = +date[2];
+            let year = +row['year'],
+                month = +row['month'],
+                day = +row['day'];
 
-            delete row['$date$'];
-            Object.keys(row).forEach((key) => {
-                let node = _newNode(key, row[key].split('-'));
-                if (node.cluster === undefined)
-                    return;
+            let node = _nodesNew(
+                { year, month, day },
+                row['tag'],
+                +row['answercount'],
+                +row['commentcount'],
+                +row['questioncount'],
+                +row['upvotes'],
+                +row['downvotes'],
+                +row['offensivevotes']
+            );
 
-                let nodesByYear = nodes[year] = nodes[year] || {};
-                let nodesByMonthAndYear = nodesByYear[month] = nodesByYear[month] || {};
-                let nodesByDayAndMonthAndYear = nodesByMonthAndYear[day] = nodesByMonthAndYear[day] || {};
-                let clusterNode = nodesByDayAndMonthAndYear[node.cluster] = nodesByDayAndMonthAndYear[node.cluster] || {
-                    children: {},
-                    childrenLinks: []
-                };
+            let nodesByYear = nodes[year] = nodes[year] || {};
+            let nodesByMonthAndYear = nodesByYear[month] = nodesByYear[month] || {};
+            let nodesByDayAndMonthAndYear = nodesByMonthAndYear[day] = nodesByMonthAndYear[day] || {};
+            let clusterNode = nodesByDayAndMonthAndYear[node.$cluster] = nodesByDayAndMonthAndYear[node.$cluster] || {
+                $children: {}
+            };
 
-                // Process clusters
-                if (node.id === node.cluster) { // We found the parent
-                    node.children = clusterNode.children;
-                    node.childrenLinks = clusterNode.childrenLinks;
-                    nodesByDayAndMonthAndYear[node.cluster] = node;
-                } else {
-                    clusterNode.children[node.id] = node;
-                }
-            });
+            // Process clusters
+            if (node.$tag === node.$cluster) { // We found the parent
+                node.$children = clusterNode.$children;
+                nodesByDayAndMonthAndYear[node.$cluster] = node;
+            } else {
+                clusterNode.$children[node.$tag] = node;
+            }
         });
 
         // Calculate dateMin and dateMax
         let years = Object.keys(nodes).sort(),
             yearStart = +years[0],
-            yearEnd = +years.pop()
-        ;
-        let monthStart = +Object.keys(nodes[yearStart])[0],
-            monthEnd = +Object.keys(nodes[yearEnd]).pop()
+            yearEnd = +years.pop(),
+            monthStart = +Object.keys(nodes[yearStart])[0],
+            monthEnd = +Object.keys(nodes[yearEnd]).pop(),
+            dayStart = +Object.keys(nodes[yearStart][monthStart])[0],
+            dayEnd = +Object.keys(nodes[yearEnd][monthEnd]).pop()
         ;
 
-        dateMin = new Date(yearStart, monthStart - 1, 1);
-        dateMax = new Date(yearEnd, monthEnd - 1, 1);
+        dateMin = new Date(yearStart, monthStart - 1, dayStart);
+        dateMax = new Date(yearEnd, monthEnd - 1, dayEnd);
+
+        // Make sure there are no holes
+        for (let date = new Date(dateMin); date <= dateMax; date.setDate(date.getDate() + 1)) {
+            let year = date.getFullYear(),
+                month = date.getMonth() + 1,
+                day = date.getDate();
+
+            let nodesByYear = nodes[year] = nodes[year] || {},
+                nodesByMonth = nodesByYear[month] = nodesByYear[month] || {},
+                nodesByDay = nodesByMonth[day] = nodesByMonth[day] || {};
+
+            // Remove oprhans (children with no parent)
+            Object.keys(nodesByDay).forEach((tag) => {
+                if (nodesByDay[tag].$tag === undefined)
+                    delete nodesByDay[tag];
+            })
+        }
     }
-    function deltaNodes(dateStart, dateEnd) {
-        console.time('data.deltaNodes');
+    function nodesByTagByDay(year, tag) {
+        console.time('data.nodesByTagByDay');
 
-        let nodesStart = nodes[dateStart.year][dateStart.month][dateStart.day],
-            nodesEnd = nodes[dateEnd.year][dateEnd.month][dateEnd.day],
-            result = {}
-        ;
+        let nodesByMonth, nodesByDay;
+        let result = [];
 
-        Object.values(nodesStart).forEach((n) => {
-            let nodeStart = n,
-                nodeEnd = nodesEnd[nodeStart.id],
-                resultNode = _subNode(nodeEnd, nodeStart)
-            ;
-
-            // Ignore nodes which don't have any activity during the selected period
-            if (resultNode.radius === 0)
-                return;
-
-            result[n.id] = resultNode;
+        Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
+            Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
+                let node = nodesByDay[day][tag] || _nodesNew({ year, month, day }, tag, 0, 0, 0, 0, 0, 0);
+                result.push(node);
+            })
         });
 
-        console.timeEnd('data.deltaNodes');
+        console.timeEnd('data.nodesByTagByDay');
         return result;
     }
-    function seriesNodes(dateStart, dateEnd) {
-        console.time('data.seriesNodes');
+    function nodesByTagByWeek(year, tag) {
+        console.time('data.nodesByTagByWeek');
 
-        // Calculate previous date
-        let previousDate = new Date(dateStart.year, dateStart.month - 1, dateStart.day);
-        previousDate.setDate(previousDate.getDate() - 1);
-        previousDate = previousDate.getTime() < dateMin.getTime() ? dateMin : previousDate;
+        let nodesByMonth, nodesByDay;
+        let result = [],
+            resultByWeek = null,
+            resultWeek = null;
 
-        let result = {},
-            resultDates = {} // To save memory, we reuse the Date objects
-        ;
+        Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
+            Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
+                let node = nodesByDay[day][tag] || null,
+                    week = _getWeek(year, month, day);
 
-        Object.keys(nodes[dateStart.year][dateStart.month][dateStart.day]).forEach((tag) => {
-            let nodeStart = nodes[previousDate.getFullYear()][previousDate.getMonth() + 1][previousDate.getDate()][tag];
-            let series = result[tag] = [];
-            let year = dateStart.year,
-                month = dateStart.month,
-                day = dateStart.day
-            ;
-
-            for (; year <= dateEnd.year && nodes[year]; year ++) {
-                for (; (year < dateEnd.year || month <= dateEnd.month) && nodes[year][month]; month ++) {
-                    for (; (year < dateEnd.year || month < dateEnd.month || day <= dateEnd.day) && nodes[year][month][day]; day ++) {
-                        let nodeEnd = nodes[year][month][day][tag];
-                        let resultNode = _subNode(nodeEnd, nodeStart);
-
-                        let resultDateByYear = resultDates[year] = resultDates[year] || {},
-                            resultDateByMonthAndYear = resultDateByYear[month] = resultDateByYear[month] || {};
-                        resultNode.date = resultDateByMonthAndYear[day] = resultDateByMonthAndYear[day] || new Date(Date.UTC(year, month - 1, day));
-
-                        series.push(resultNode);
-                        nodeStart = nodeEnd;
-                    }
-                    day = 1;
+                if (resultByWeek === null || resultWeek !== week) {
+                    resultWeek = week;
+                    resultByWeek = _nodesNew({ year, month, week }, tag, 0, 0, 0, 0, 0, 0);
+                    result.push(resultByWeek);
                 }
-                month = 1;
-            }
+
+                if (node !== null)
+                    _nodesSum(resultByWeek, node);
+            })
         });
 
-        console.timeEnd('data.seriesNodes');
+        console.timeEnd('data.nodesByTagByWeek');
+        return result;
+    }
+    function nodesByYear(year) {
+        console.time('data.nodesByYear');
+
+        let nodesByYear, nodesByMonth, nodesByDay;
+        let result = {};
+
+        Object.keys(nodesByYear = nodes[year]).forEach((month) => {
+            Object.keys(nodesByMonth = nodesByYear[month]).forEach((day) => {
+                Object.keys(nodesByDay = nodesByMonth[day]).forEach((tag) => {
+                    let node = nodesByDay[tag],
+                        resultNode = result[tag] = result[tag] || _nodesNew({ year }, tag, 0, 0, 0, 0, 0, 0);
+
+                    _nodesSum(resultNode, node);
+                })
+            })
+        });
+
+        console.timeEnd('data.nodesByYear');
         return result;
     }
 
-    function _newNode(tag, value) {
-        let node = {
-            tag: tag,
-            answercount: +value[0],
-            commentcount: +value[1],
-            questioncount: +value[2],
-            upvotes: +value[3],
-            downvotes: +value[4],
-            offensivevotes: +value[5],
-            linkCount: 0,
-            hasIcon: icons[tag] !== undefined
+    function _nodesNew(date, tag, answercount, commentcount, questioncount, upvotes, downvotes, offensivevotes) {
+        return {
+            $date: date,
+            $id: '$' + tag,
+            $icon: icons[tag] ? icons[tag].id : null,
+            $children: null,
+            $cluster: clusters[tag],
+            $radius: answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes,
+            $tag: tag,
+            answercount,
+            commentcount,
+            questioncount,
+            upvotes,
+            downvotes,
+            offensivevotes
         };
-
-        node.id = '$' + tag;
-        node.cluster = clusters[node.id];
-        node.radius = node.answercount + node.commentcount + node.questioncount + node.upvotes + node.downvotes;
-
-        return node;
     }
-    function _subNode(nodeEnd, nodeStart) {
-        let node = {
-            id: nodeStart.id,
-            cluster: nodeStart.cluster,
-            tag: nodeStart.tag,
-            answercount: nodeEnd.answercount - nodeStart.answercount,
-            commentcount: nodeEnd.commentcount - nodeStart.commentcount,
-            questioncount: nodeEnd.questioncount - nodeStart.questioncount,
-            upvotes: nodeEnd.upvotes - nodeStart.upvotes,
-            downvotes: nodeEnd.downvotes - nodeStart.downvotes,
-            offensivevotes: nodeEnd.offensivevotes - nodeStart.offensivevotes,
-            linkCount: 0,
-            radius: nodeEnd.radius - nodeStart.radius,
-            hasIcon: nodeStart.hasIcon
-        };
+    function _nodesSum(nodeResult, node) {
+        nodeResult.$radius += node.$radius;
+        nodeResult.answercount += node.answercount;
+        nodeResult.commentcount += node.commentcount;
+        nodeResult.upvotes += node.upvotes;
+        nodeResult.downvotes += node.downvotes;
+        nodeResult.offensivevotes += node.offensivevotes;
 
-        // Sub children
-        if (nodeStart.children !== undefined) {
-            node.children = {};
-            node.childrenLinks = [];
+        // Sum children
+        if (node.$children !== null) {
+            nodeResult.$children = {};
 
-            Object.values(nodeStart.children).forEach((n) => node.children[n.id] = _subNode(nodeEnd.children[n.id], n))
+            Object.keys(node.$children).forEach((tag) => {
+                let child = node.$children[tag],
+                    childResult = nodeResult.$children[tag] = nodeResult.$children[tag] || _nodesNew(nodeResult.$date, tag,  0, 0, 0, 0, 0, 0);
+                _nodesSum(childResult, child);
+            });
         }
-
-        return node;
     }
 
-    function seriesCommunity() {
-        console.time('data.seriesCommunity');
+    // Thanks to https://gist.github.com/dblock/1081513
+    function _getWeek(year, month, day) {
+        let target = new Date(year, month - 1, day),
+            dayNr = (target.getDay() + 6) % 7,
+            jan4    = new Date(target.getFullYear(), 0, 4);
 
-        let dateStart = { year: dateMin.getFullYear(), month: dateMin.getMonth() + 1, day: dateMin.getDate() },
-            dateEnd = { year: dateMax.getFullYear(), month: dateMax.getMonth() + 1, day: dateMax.getDate() },
-            year = dateStart.year,
-            month = dateStart.month,
-            day = dateStart.day
-        ;
-
-        let valueStart = 0,
-            valueEnd = 0,
-            series = [],
-            tags = Object.keys(nodes[dateStart.year][dateStart.month][dateStart.day]);
-
-        for (; year <= dateEnd.year && nodes[year]; year ++) {
-            for (; (year < dateEnd.year || month <= dateEnd.month) && nodes[year][month]; month ++) {
-                    valueEnd = 0;
-                    tags.forEach((tag) => {
-                        let node = nodes[year][month][day][tag];
-                        valueEnd += node.answercount + node.commentcount + node.questioncount + node.upvotes + node.downvotes;
-                    });
-
-                    series.push({
-                        date: new Date(Date.UTC(year, month - 1, day)),
-                        value: valueEnd - valueStart
-                    });
-                    valueStart = valueEnd;
-            }
-            month = 1;
-        }
-
-        console.timeEnd('data.seriesCommunity');
-        return series;
+        target.setDate(target.getDate() - dayNr + 3);
+        return 1 + Math.ceil((target - jan4) / 86400000 / 7);
     }
 
 }());
