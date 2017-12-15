@@ -19,7 +19,7 @@ const d3votes = (function () {
 
     function init() {
 
-        container = document.getElementsByClassName('votes')[0];
+        container = document.getElementById('upvotes-downvotes');
         width = container.offsetWidth;
         height = container.offsetHeight;
 

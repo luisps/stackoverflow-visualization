@@ -28,6 +28,9 @@ const d3bubble = (function () {
     }
 
     function load(selected) {
+        console.warn('TODO: fix d3bubble');
+        return;
+
         let isVisible = selected && Object.keys(selected.children).length > 0;
         d3bubble.attr('display', isVisible ? 'initial' : 'none');
         if (!isVisible) return;
