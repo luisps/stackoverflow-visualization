@@ -22,7 +22,7 @@ const d3sidebar = (function () {
         $dispatcher.call('load', this, {
             nodesByYear: data.nodesByTagByDay(year, tag),
             nodesByWeek: data.nodesByTagByWeek(year,  tag),
-            links: node.$links
+            node: node
         });
     }
 

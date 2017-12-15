@@ -4,7 +4,7 @@ const d3votes = (function () {
     const paddingInner = 1;
 
     // Variables
-    let selectedTag = null,
+    let nodes = null,
         width = null,
         height = null,
         svg = null,
@@ -48,25 +48,20 @@ const d3votes = (function () {
         tooltip = d3.select(container).select('.tooltip');
 
         // Event listeners
-        //d3graph.$dispatcher.on('select.votes', (selected) => {
-        setTimeout(function() {
-            var selected = {id: 'javascript'};
-            selectedTag = selected.id;
+        d3sidebar.$dispatcher.on('load.votes', (data) => {
+            nodes = data.nodesByWeek;
             update();
-        }, 2000);
+        });
 
     }
 
     function update() {
 
-        var votesData = data.nodesByTagByWeek(2016, selectedTag);
-        console.log(votesData);
-
         //we use the same domain for upvotes and downvotes
-        var maxVotes = d3.max(votesData, function(d) { return Math.max(d.upvotes, d.downvotes); });
+        var maxVotes = d3.max(nodes, function(d) { return Math.max(d.upvotes, d.downvotes); });
 
         //calculate bandwidth - the size of each bar
-        var bandwidth = (width - 2 * paddingOuter) / votesData.length - paddingInner;
+        var bandwidth = (width - 2 * paddingOuter) / nodes.length - paddingInner;
 
         //simple hack to make the upvotes' bars have 0 height when all votes are 0
         var initialDomain = (maxVotes == 0) ? -1 : 0;
@@ -76,7 +71,7 @@ const d3votes = (function () {
 
         //selection for upvotes
         var bars = svg.selectAll('.upvotes-bar')
-                   .data(votesData);
+                   .data(nodes);
 
         bars
             .enter().append('rect')
@@ -94,7 +89,7 @@ const d3votes = (function () {
 
         //selection for downvotes
         bars = svg.selectAll('.downvotes-bar')
-                   .data(votesData);
+                   .data(nodes);
 
         bars
             .enter().append('rect')

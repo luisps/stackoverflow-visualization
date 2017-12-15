@@ -55,6 +55,7 @@
 }
 
 #upvotes-downvotes {
+	position: relative;
     height: 4.5rem;
 }
 
@@ -129,7 +130,7 @@
 }
 
 .donut-legend text {
-	font-size: 14px;
+	font-size: 12px;
 }
 
 .scatter {
@@ -138,10 +139,10 @@
   height: 150px;
   width: 80%;
   left: 50%;
+  z-index: -10;
   transform: translate(-50%, 0);
 }
 
 @media screen and (min-width: 1920px)                           {  html { font-size: 16px; }  }
 @media screen and (min-width: 1600px) and (max-width: 1919px)   {  html { font-size: 15px; }  }
 @media screen and (min-width: 1366px) and (max-width: 1599px)   {  html { font-size: 14px; }  }
->>>>>>> Responsive sidebar

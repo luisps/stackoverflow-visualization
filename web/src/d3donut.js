@@ -2,27 +2,26 @@ const d3donut = (function () {
 
     // Variables
     let selectedTag = null,
-    deltaLinks = null,
-    widthDonut = null,
-    widthLegend = null,
-    paddingLegend = null,
-    height = null,
-    svgChildren = null,
-    svgRelated = null,
-    legendChildren = null,
-    legendRelated = null,
-    colorScaleChildren = null,
-    colorScaleRelated = null,
-    innerRadius = null,
-    outerRadius = null,
-    pie = null,
-    arc = null,
-    donutData = null,
-    colors_g = ['#3366cc', '#dc3912', '#ff9900', '#109618', '#990099', '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395', '#994499', '#22aa99', '#aaaa11', '#6633cc', '#e67300', '#8b0707', '#651067', '#329262', '#5574a6', '#3b3eac'],
-    colorOthers = 'gray',
-    colorIdle = '#fad44f',
-    maxTags = 8;
-    ;
+        links = null,
+        widthDonut = null,
+        widthLegend = null,
+        paddingLegend = null,
+        height = null,
+        svgChildren = null,
+        svgRelated = null,
+        legendChildren = null,
+        legendRelated = null,
+        colorScaleChildren = null,
+        colorScaleRelated = null,
+        innerRadius = null,
+        outerRadius = null,
+        pie = null,
+        arc = null,
+        donutData = null,
+        colors_g = ['#3366cc', '#dc3912', '#ff9900', '#109618', '#990099', '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395', '#994499', '#22aa99', '#aaaa11', '#6633cc', '#e67300', '#8b0707', '#651067', '#329262', '#5574a6', '#3b3eac'],
+        colorOthers = 'gray',
+        maxTags = 8;
+        ;
 
     return {
         init,
@@ -37,12 +36,12 @@ const d3donut = (function () {
 
         //width and height will be the same for both donut charts
         //we set the donut's height on the CSS and use it to calculate the width
-        container = document.getElementsByClassName('#sub-communities')[0];
+        container = document.getElementById('sub-communities');
         height = container.offsetHeight;
 
         widthDonut = height;
-        widthLegend = height * 0.5;
-        paddingLegend = height * 0.1;
+        widthLegend = height * 0.4;
+        paddingLegend = height * 0.05;
         container.style.width = (widthDonut + paddingLegend + widthLegend) + 'px';
 
         //make outer radius occupy all of available height
@@ -50,11 +49,11 @@ const d3donut = (function () {
         innerRadius = outerRadius * 0.8;
 
         //create SVGs for both charts
-        var res = createChart('.#sub-communities', messageIdleChildren);
+        var res = createChart('#sub-communities');
         svgChildren = res.donut;
         legendChildren = res.legend;
 
-        res = createChart('#related-communities', messageIdleRelated);
+        res = createChart('#related-communities');
         svgRelated = res.donut;
         legendRelated = res.legend;
 
@@ -71,21 +70,17 @@ const d3donut = (function () {
             .outerRadius(outerRadius);
 
         // Event listeners
-        d3time.$dispatcher.on('update.donut', (data) => {
-            deltaLinks = data.delta.links;
-            updateChildren();
-            updateRelated();
-        });
-
-        d3graph.$dispatcher.on('select.donut', (selected) => {
-            selectedTag = selected.id;
-            updateChildren();
+        d3sidebar.$dispatcher.on('load.donut', (data) => {
+            selectedTag = data.node.$id;
+            links = data.node.$links;
+            console.log(links);
+            //updateChildren();
             updateRelated();
         });
 
     }
 
-    function createChart(selector, messageIdle) {
+    function createChart(selector) {
 
         var chart = d3.select(selector);
 
@@ -103,27 +98,6 @@ const d3donut = (function () {
             .attr('class', 'donut-legend');
             ;
 
-        //create tooltip
-        svgDonut
-            .append('text')
-            .attr('class', 'toolCircle')
-            .attr('dy', -0)
-            .html(messageIdle())
-            .style('font-size', '.7em')
-            .style('text-anchor', 'middle')
-            .attr('visibility', 'hidden')
-            ;
-
-        svgDonut
-            .append('circle')
-            .attr('class', 'toolCircle')
-            .attr('r', innerRadius * 0.95)
-            .style('fill', colorIdle)
-            .style('fill-opacity', 0.35)
-            .attr('visibility', 'hidden')
-            ;
-
-
         return {donut: svgDonut, legend: svgLegend};
 
     }
@@ -132,13 +106,21 @@ const d3donut = (function () {
         if (selectedTag == null)
             return;
 
+        //drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
+        //d3.selectAll('#sub-communities .slice path').call(toolTip, svgChildren, colorScaleChildren);
+
+    }
+
+    function updateRelated() {
+        if (selectedTag == null)
+            return;
+
         donutData = []
         var total = 0;
-        for (let d of deltaLinks) {
-            if (d.source.id == selectedTag) {
-                donutData.push({tag: d.target.tag, value: d.value});
-                total += d.value;
-            }
+        for (let d of links) {
+            var tag = (d.tag1 == selectedTag) ? d.tag1 : d.tag2;
+            donutData.push({tag: tag, value: d.value});
+            total += d.value;
         }
 
         //must sort array first
@@ -158,35 +140,8 @@ const d3donut = (function () {
         for (let d of donutData)
             d.value = d.value / total * 100;
 
-        //console.log(donutData);
-
-        drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
-        d3.selectAll('.#sub-communities .slice path').call(toolTip, svgChildren, colorScaleChildren, messageIdleChildren);
-
-    }
-
-    function updateRelated() {
-        if (selectedTag == null)
-            return;
-
-        donutData = []
-        var total = 0;
-        for (let d of deltaLinks) {
-            if (d.source.id == selectedTag) {
-                var value = d.value * Math.random();
-                donutData.push({tag: d.target.tag, value: value});
-                total += value;
-            }
-        }
-
-        //convert values to probabilities
-        for (let d of donutData)
-            d.value = d.value / total * 100;
-
-        donutData.sort(function(a, b) { return a.value - b.value; });
-        
         drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
-        d3.selectAll('#related-communities .slice path').call(toolTip, svgRelated, colorScaleRelated, messageIdleRelated);
+        d3.selectAll('#related-communities .slice path').call(toolTip, svgRelated, colorScaleRelated);
 
     }
 
@@ -219,17 +174,17 @@ const d3donut = (function () {
             ;
 
         g.append('text')
-            .attr('font-size', '14px')
+            .attr('font-size', '10px')
             .attr('dominant-baseline', 'central')
             .attr('x', '14px')
-            .attr('y', function(d, i) { return 14 * i + 4 + 'px'; })
+            .attr('y', function(d, i) { return 10 * i + 4 + 'px'; })
             .merge(svgData)
             .text(function(d) { return d.tag; })
             ;
 
         g.append('rect')
             .attr('x', 0)
-            .attr('y', function(d, i) { return 14 * i + 'px'; })
+            .attr('y', function(d, i) { return 10 * i + 'px'; })
             .attr('width', '8px')
             .attr('height', '8px')
 			.style('fill', function(d, i) { return colorScale(i); })
@@ -242,19 +197,10 @@ const d3donut = (function () {
     }
 
 
-    function toolTip(selection, svg, colorScale, messageIdle) {
+    function toolTip(selection, svg, colorScale) {
 
         selection.on('mouseenter', function (d, i) {
-
-            svg.select('text.toolCircle')
-                .html(toolTipHTML(d))
-                ;
-
-            svg.select('circle.toolCircle')
-                .style('fill', colorScale(i))
-                ;
                 
-            /*
             svg.append('text')
                 .attr('class', 'toolCircle')
                 .attr('dy', -0)
@@ -267,31 +213,13 @@ const d3donut = (function () {
                 .attr('r', innerRadius * 0.95)
                 .style('fill', colorScale(i))
                 .style('fill-opacity', 0.35);
-            */
 
         });
 
         selection.on('mouseout', function () {
-            //d3.selectAll('.toolCircle').remove();
-
-            svg.select('text.toolCircle')
-                .html(messageIdle())
-                ;
-
-            svg.select('circle.toolCircle')
-                .style('fill', colorIdle)
-                ;
-
+            d3.selectAll('.toolCircle').remove();
         });
 
-    }
-
-    function messageIdleChildren() {
-        return '<tspan x="0" font-weight="bold">Sub Communities</tspan>';
-    }
-
-    function messageIdleRelated() {
-        return '<tspan x="0" font-weight="bold">Related Communities</tspan>';
     }
 
     function toolTipHTML(d) {
