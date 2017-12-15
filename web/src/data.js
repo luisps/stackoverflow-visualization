@@ -19,6 +19,8 @@ const data = (function () {
     return {
         $dispatcher,
         load,
+        nodesByTagByDay,
+        nodesByTagByWeek
     };
 
     function load(region) {
