@@ -103,6 +103,7 @@ INSERT INTO tags_blacklist (tag) VALUES
     ('session'),
     ('socket'),
     ('stored-procedure'),
+    ('string'),
     ('template'),
     ('textview'),
     ('timer'),
@@ -113,6 +114,7 @@ INSERT INTO tags_blacklist (tag) VALUES
     ('validation'),
     ('variables'),
     ('video'),
+    ('web'),
     ('webforms'),
     ('webservice'),
     ('webview')

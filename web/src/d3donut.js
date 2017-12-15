@@ -37,7 +37,7 @@ const d3donut = (function () {
 
         //width and height will be the same for both donut charts
         //we set the donut's height on the CSS and use it to calculate the width
-        container = document.getElementsByClassName('donut-children')[0];
+        container = document.getElementsByClassName('#sub-communities')[0];
         height = container.offsetHeight;
 
         widthDonut = height;
@@ -50,11 +50,11 @@ const d3donut = (function () {
         innerRadius = outerRadius * 0.8;
 
         //create SVGs for both charts
-        var res = createChart('.donut-children', messageIdleChildren);
+        var res = createChart('.#sub-communities', messageIdleChildren);
         svgChildren = res.donut;
         legendChildren = res.legend;
 
-        res = createChart('.donut-related', messageIdleRelated);
+        res = createChart('#related-communities', messageIdleRelated);
         svgRelated = res.donut;
         legendRelated = res.legend;
 
@@ -161,7 +161,7 @@ const d3donut = (function () {
         //console.log(donutData);
 
         drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
-        d3.selectAll('.donut-children .slice path').call(toolTip, svgChildren, colorScaleChildren, messageIdleChildren);
+        d3.selectAll('.#sub-communities .slice path').call(toolTip, svgChildren, colorScaleChildren, messageIdleChildren);
 
     }
 
@@ -186,7 +186,7 @@ const d3donut = (function () {
         donutData.sort(function(a, b) { return a.value - b.value; });
         
         drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
-        d3.selectAll('.donut-related .slice path').call(toolTip, svgRelated, colorScaleRelated, messageIdleRelated);
+        d3.selectAll('#related-communities .slice path').call(toolTip, svgRelated, colorScaleRelated, messageIdleRelated);
 
     }
 

@@ -10,25 +10,72 @@
     flex-grow: 1
 }
 
-#side-bar {
-	position: absolute;
-	left: 0;
-	width: 40%;
-	height: 100%;
-	background-color: white;
+#sidebar {
+    position: absolute;
+    left: 0.8rem;
+    top: 4rem;
+ 	width: calc(40% - 0.8rem);
+    min-width: 32rem;
+    padding: 0.8rem;
+    background: white;
+    overflow: visible;
+}
+#sidebar > .icon {
+    width: 6rem;
+    height: 6rem;
+    margin: -4rem auto 0;
+    background: url('img/icons/javascript.png');
+    background-size: contain;
+    border-radius: 50%;
+    border: 6px solid white;
+}
+#sidebar > .tag {
+    width: 100%;
+    margin: 0.5rem 0 0.75rem 0;
+    text-align: center;
+    font-weight: bolder;
+    font-size: 1.5rem;
+}
+#sidebar .title {
+    margin-top: 0.5rem;
+    margin-bottom: 0.125rem;
+    font-size: 1.2rem;
+}
+#sidebar .label {
+    margin-top: 0.25rem;
+    margin-bottom: 0.125rem;
+    color: #95989A;
+    font-size: 0.95rem;
+    font-weight: 200;
+    text-transform: uppercase;
+}
+
+#heatmap {
+    height: 10rem;
+}
+
+#upvotes-downvotes {
+    height: 4.5rem;
+}
+
+#offensive-reports {
+    height: 4.5rem;
+}
+
+#sub-communities,
+#related-communities {
+    height: 10rem;
 }
 
 #zoom {
 	position: absolute;
-	right: 0;
-	width: 60%;
 	height: 100%;
+	width: 100%;
 }
 
 #zoom .labels {
     pointer-events: none;
 }
-
 #zoom .labels p {
     display: flex;
     height: 100%;
@@ -42,20 +89,7 @@
     pointer-events: none;
 }
 
-.calendar-heatmap {
-  top: 5%;
-  height: 40%;
-}
-
-.votes {
-  position: absolute;
-  top: 40%;
-  height: 25%;
-  width: 80%;
-  margin: 0 auto;
-}
-
-.votes line {
+#upvotes-downvotes line {
 	stroke: gray;
 	stroke-width: 0.5;
 }
@@ -94,22 +128,7 @@
     border-color: #555 transparent transparent transparent;
 }
 
-.donut-children, .donut-related {
-  position: absolute;
-  bottom: 5%;
-  height: 150px;
-}
-
-.donut-children {
-  left: 20px;
-}
-
-.donut-related {
-  right: 20px;
-}
-
 .donut-legend text {
-	font: Verdana;
 	font-size: 14px;
 }
 
@@ -121,16 +140,8 @@
   left: 50%;
   transform: translate(-50%, 0);
 }
-	
 
-#time-slider {
-	position: absolute; 
-	left: 25%;
-	width: 65%;
-	top: 4%;
-	z-index: 1000;
-}
-
-#time-slider .d3-slider-axis {
-	pointer-events: none;
-}
+@media screen and (min-width: 1920px)                           {  html { font-size: 16px; }  }
+@media screen and (min-width: 1600px) and (max-width: 1919px)   {  html { font-size: 15px; }  }
+@media screen and (min-width: 1366px) and (max-width: 1599px)   {  html { font-size: 14px; }  }
+>>>>>>> Responsive sidebar

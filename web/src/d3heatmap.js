@@ -1,9 +1,6 @@
 const d3heatmap = (function () {
 
-    // Variables
-    let selectedTag = null,
-        tagData = []
-    ;
+    // Private Variables
 
     return {
         init
@@ -46,55 +43,4 @@ const d3heatmap = (function () {
 
     }
 
-    function updateTagData() {
-
-        //erase data from previous tag
-        tagData = [];
-        var dataNodes = data.nodes;
-        var prev = null;
-
-        for (var year in dataNodes) {
-            for (var month in dataNodes[year]) {
-                for (var day in dataNodes[year][month]) {
-                    var activity = dataNodes[year][month][day][selectedTag];
-
-                    //since we're dealing with accumulated values we must subtract
-                    //the counts of the current day to the counts of the previous day
-                    if (prev == null) {
-                        var questionCount = activity.questioncount,
-                            answerCount = activity.answercount,
-                            commentCount = activity.commentcount
-                            ;
-                    } else {
-                        var questionCount = activity.questioncount - prev.questioncount,
-                            answerCount = activity.answercount - prev.answercount,
-                            commentCount = activity.commentcount - prev.commentcount
-                            ;
-                    }
-                    prev = activity;
-
-                    tagData.push({
-                        date: new Date(year, month, day),
-                        total: questionCount + answerCount + commentCount,
-                        summary: [
-                        {
-                            name: 'Questions',
-                            value: questionCount
-                        },
-                        {
-                            name: 'Answers',
-                            value: answerCount
-                        },
-                        {
-                            name: 'Comments',
-                            value: commentCount
-                        }]
-                    });
-                }
-            }
-        }
-
-    }
-
-
-}());
+})();

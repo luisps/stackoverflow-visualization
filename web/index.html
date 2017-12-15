@@ -12,7 +12,7 @@
     <script	src="libs/jquery.min.js" charset="utf-8"></script>
 
     <!-- Material Design Lite -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:200,400,800" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="libs/mdl/material.orange-amber.min.css" rel="stylesheet">
     <script src="libs/mdl/material.min.js"></script>
@@ -65,16 +65,29 @@
         </div>
     </header>
     <main class="mdl-layout__content" style="overflow: hidden;">
-        <div id="side-bar">
-          <div class="calendar-heatmap"></div>
-          <div class="votes">
-            <div class="tooltip"></div>
-          </div>
-          <div class="donut-children"></div>
-          <div class="donut-related"></div>
-          <div class="scatter">
-            <div class="tooltip"></div>
-          </div>
+        <div id="sidebar" class="mdl-card mdl-shadow--2dp">
+            <div class="icon"></div>
+            <div class="tag">JavaScript</div>
+            <div class="title">Community Activity</div>
+            <div id="heatmap"></div>
+            <div class="title">Community Health</div>
+            <div class="label">Upvotes/Downvotes</div>
+            <div id="upvotes-downvotes"></div>
+            <div class="label">Offensive Reports</div>
+            <div id="offensive-reports"></div>
+            <div style="display: flex;">
+                <div class="title" style="width: 50%;">
+                    <div>Sub-Communities</div>
+                    <div id="sub-communities"></div>
+                </div>
+                <div class="title" style="width: 50%;">
+                    <div>Related Communities</div>
+                    <div id="related-communities"></div>
+                </div>
+            </div>
+            <div class="scatter">
+                <div class="tooltip"></div>
+            </div>
         </div>
         <svg id="zoom">
             <defs></defs>

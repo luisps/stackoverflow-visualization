@@ -110,7 +110,7 @@ const d3votes = (function () {
 
         bars.exit().remove();
 
-        d3.selectAll('.votes .upvotes-bar, .votes .downvotes-bar').call(toolTip);
+        d3.selectAll('#upvotes-downvotes .upvotes-bar, #upvotes-downvotes .downvotes-bar').call(toolTip);
 
     }
 
