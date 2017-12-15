@@ -20,7 +20,8 @@ const data = (function () {
         $dispatcher,
         load,
         nodesByTagByDay,
-        nodesByTagByWeek
+        nodesByTagByWeek,
+        nodesByYear
     };
 
     function load(region) {

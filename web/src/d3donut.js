@@ -18,17 +18,18 @@ const d3donut = (function () {
     pie = null,
     arc = null,
     donutData = null,
-    colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"],
+    colors_g = ['#3366cc', '#dc3912', '#ff9900', '#109618', '#990099', '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395', '#994499', '#22aa99', '#aaaa11', '#6633cc', '#e67300', '#8b0707', '#651067', '#329262', '#5574a6', '#3b3eac'],
     colorOthers = 'gray',
     colorIdle = '#fad44f',
     maxTags = 8;
     ;
 
     return {
-        init
+        init,
+        googleColors
     };
 
-    function google_colors(n) {
+    function googleColors(n) {
         return colors_g[n % colors_g.length];
     }
 
@@ -58,8 +59,8 @@ const d3donut = (function () {
         legendRelated = res.legend;
 
         //define color scales here
-        colorScaleChildren = google_colors;
-        colorScaleRelated = google_colors;
+        colorScaleChildren = googleColors;
+        colorScaleRelated = googleColors;
 
 		pie = d3.pie()
 			.value(function(d) { return d.value; })

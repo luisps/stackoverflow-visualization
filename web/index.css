@@ -69,15 +69,29 @@
 }
 
 .tooltip {   
-	position: absolute;           
-	text-align: center;           
+	position: absolute;
 	display: inline-block;
-	padding: 2px;             
-	font: 12px sans-serif;        
-	background: #fad44f;   
-	border: 0px;      
-	border-radius: 8px;           
-	pointer-events: none;         
+	text-align: center;
+    background-color: #555;
+    color: #fff;
+	font: 12px sans-serif;
+	border-radius: 6px;
+    padding: 5px 5px;
+    z-index: 1;
+	opacity: 0;  /* starts hidden by default */
+	pointer-events: none;
+}
+
+.tooltip::after {
+	/* CSS to add a triangle to the tooltips's bottom region*/
+    content: " ";
+    position: absolute;
+    top: 100%; /* At the bottom of the tooltip */
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
 }
 
 .donut-children, .donut-related {
@@ -98,6 +112,16 @@
 	font: Verdana;
 	font-size: 14px;
 }
+
+.scatter {
+  position: absolute;
+  bottom: 5%;
+  height: 150px;
+  width: 80%;
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+	
 
 #time-slider {
 	position: absolute; 

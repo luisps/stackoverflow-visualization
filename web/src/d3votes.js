@@ -1,16 +1,17 @@
 const d3votes = (function () {
 
-    const NUM_WEEKS_YEAR = 52;
     const paddingOuter = 4;
     const paddingInner = 1;
 
     // Variables
     let selectedTag = null,
-    width = null,
-    height = null,
-    svg = null,
-    tooltip = null
-    ;
+        width = null,
+        height = null,
+        svg = null,
+        upvoteScale = null,
+        downvoteScale = null,
+        tooltip = null
+        ;
 
     return {
         init
@@ -22,7 +23,14 @@ const d3votes = (function () {
         width = container.offsetWidth;
         height = container.offsetHeight;
 
-        svg = d3.select('.votes').append('svg')
+        //create scales
+        upvoteScale = d3.scaleLinear()
+                .range([0, height/2]);
+
+        downvoteScale = d3.scaleLinear()
+                .range([0, height/2]);
+
+        svg = d3.select(container).append('svg')
             .attr('width', width)
             .attr('height', height)
             .append('g')
@@ -37,63 +45,34 @@ const d3votes = (function () {
             .attr('y2', height/2)
         ;
 
-        tooltip = d3.select('.votes').append('div')
-            .attr('class', 'tooltip')
-            .style('opacity', 0)
-            ;
+        tooltip = d3.select(container).select('.tooltip');
 
         // Event listeners
-        d3graph.$dispatcher.on('select.votes', (selected) => {
+        //d3graph.$dispatcher.on('select.votes', (selected) => {
+        setTimeout(function() {
+            var selected = {id: 'javascript'};
             selectedTag = selected.id;
             update();
-        });
+        }, 2000);
 
     }
 
     function update() {
 
-        votesData = []
+        var votesData = data.nodesByTagByWeek(2016, selectedTag);
+        console.log(votesData);
 
-        //temporary stuff
-        var dataNodes = data.nodes;
-        year = 2016;
-        for (var month in dataNodes[year]) {
-            for (var day in dataNodes[year][month]) {
-                var activity = dataNodes[year][month][day][selectedTag];
+        //we use the same domain for upvotes and downvotes
+        var maxVotes = d3.max(votesData, function(d) { return Math.max(d.upvotes, d.downvotes); });
 
-                votesData.push({
-                    date: new Date(year, month, day),
-                    upvotes: activity.upvotes,
-                    downvotes: activity.downvotes
-                });
-
-            }
-        }
-
-        //var NUM_BARS = 365;
-
-        //temporary - still need to aggregate time in weeks
-        //for now take just 52 days
-        votesData = votesData.slice(0, 52);
-
-        var maxVotes = Math.max.apply(Math, votesData.map(function(d){return (d.upvotes > d.downvotes) ? d.upvotes: d.downvotes; }));
-
+        //calculate bandwidth - the size of each bar
         var bandwidth = (width - 2 * paddingOuter) / votesData.length - paddingInner;
 
         //simple hack to make the upvotes' bars have 0 height when all votes are 0
         var initialDomain = (maxVotes == 0) ? -1 : 0;
 
-        var upvoteScale = d3.scaleLinear()
-                .domain([initialDomain, maxVotes])
-                .range([0, height/2]);
-
-        var downvoteScale = d3.scaleLinear()
-                .domain([0, maxVotes])
-                .range([0, height/2]);
-
-        console.log(height/2);
-        console.log(maxVotes);
-        console.log(upvoteScale);
+        upvoteScale.domain([initialDomain, maxVotes]);
+        downvoteScale.domain([0, maxVotes]);
 
         //selection for upvotes
         var bars = svg.selectAll('.upvotes-bar')
@@ -104,7 +83,7 @@ const d3votes = (function () {
             .attr('class', 'upvotes-bar')
             .attr('x', function(d, i) { return paddingOuter + i * (bandwidth + paddingInner); })
             .attr('width', bandwidth)
-            .attr('y', height/2)  // set y here to have a smooth transition for entering bars
+            .attr('y', height/2)  // set y here before merge to have a smooth transition for entering bars
             .merge(bars)
             .transition()
             .attr('y', function(d) { return upvoteScale(d.upvotes); })
@@ -137,8 +116,8 @@ const d3votes = (function () {
 
     function toolTip(selection) {
 
-        //bars contains all bars - both upvotes and downvotes
-        //numBars is the number of upvote bars(or downvote bars)
+        //variable bars contains all bars - both upvotes and downvotes
+        //variable numBars is the number of upvote bars(or downvote bars)
         var bars = selection._groups[0];
         var numBars = bars.length / 2;
 
@@ -157,12 +136,15 @@ const d3votes = (function () {
                 .duration(200)
                 .style('opacity', 0.9);
 
-            var x = bars[i].x.baseVal.value,
-                y = bars[i].y.baseVal.value;
+            var bandwidth = bars[i].getAttribute('width'),
+                x = bars[i].x.baseVal.value + bandwidth / 2,
+                y = bars[i].y.baseVal.value - 25;
 
-            tooltip.html(toolTipHTML(d))
+            tooltip
                 .style('left', x + 'px')
-                .style('top', y - 15 + 'px')
+                .style('top', y + 'px')
+                .html(toolTipHTML(d))
+                .style('transform', 'translate(-50%, -50%)')
                 ;
 
 
@@ -180,7 +162,7 @@ const d3votes = (function () {
             bars[i+numBars].style.fill = '#ef3d47';
 
             tooltip.transition()
-                .duration(500)
+                .duration(400)
                 .style('opacity', 0);
 
         });
@@ -188,8 +170,8 @@ const d3votes = (function () {
     }
 
     function toolTipHTML(d) {
-        return d.upvotes + ' <font size="4em">&#x1F44D</font> ' + 
-            d.downvotes + ' <font size="4em">&#x1F44E</font>';
+        return d.upvotes + ' <span style="font-size: 1.6em">&#x1F44D</span> ' + 
+            d.downvotes + ' <span style="font-size: 1.6em">&#x1F44E</span>';
     }
 
 
