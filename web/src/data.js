@@ -75,8 +75,10 @@ const data = (function () {
         });
 
         $dispatcher.call('update', this, {
-            nodes: Object.values(nodes),
-            links
+            nodesByYear: Object.values(nodes),
+            nodesByWeek: nodesByTagByWeek(data.year),
+            nodesByDay: nodesByTagByDay(data.year),
+            linksByYear: links
         });
 
         /*
@@ -221,23 +223,30 @@ const data = (function () {
         }
     }
     function nodesByTagByDay(year, tag) {
-        console.time('data.nodesByTagByDay');
+        console.time('data.nodesByTagByDay(' + year + ',' + tag + ')');
 
         let nodesByMonth, nodesByDay;
-        let result = [];
+        let result = [],
+            resultByDay = null;
 
         Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
             Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
-                let node = nodesByDay[day][tag] || _nodesNew({ year, month, day }, tag, 0, 0, 0, 0, 0, 0);
-                result.push(node);
+                resultByDay = _nodesNew({year, month, day}, tag, 0, 0, 0, 0, 0, 0);
+                result.push(resultByDay);
+
+                Object.keys(tag === null ? nodesByDay[day] : {tag}).forEach((tag) => {
+                    let node = nodesByDay[day][tag] || null;
+                    if (node !== null)
+                        _nodesSum(resultByDay, node);
+                });
             })
         });
 
-        console.timeEnd('data.nodesByTagByDay');
+        console.timeEnd('data.nodesByTagByDay(' + year + ',' + tag + ')');
         return result;
     }
     function nodesByTagByWeek(year, tag) {
-        console.time('data.nodesByTagByWeek');
+        console.time('data.nodesByTagByWeek(' + year + ',' + tag + ')');
 
         let nodesByMonth, nodesByDay;
         let result = [],
@@ -246,8 +255,7 @@ const data = (function () {
 
         Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
             Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
-                let node = nodesByDay[day][tag] || null,
-                    week = _getWeek(year, month, day);
+                let week = _getWeek(year, month, day);
 
                 if (resultByWeek === null || resultWeek !== week) {
                     resultWeek = week;
@@ -255,16 +263,19 @@ const data = (function () {
                     result.push(resultByWeek);
                 }
 
-                if (node !== null)
-                    _nodesSum(resultByWeek, node);
+                Object.keys(tag === null ? nodesByDay[day] : {tag}).forEach((tag) => {
+                    let node = nodesByDay[day][tag] || null;
+                    if (node !== null)
+                       _nodesSum(resultByWeek, node);
+                });
             })
         });
 
-        console.timeEnd('data.nodesByTagByWeek');
+        console.timeEnd('data.nodesByTagByWeek(' + year + ',' + tag + ')');
         return result;
     }
     function nodesByYear(year) {
-        console.time('data.nodesByYear');
+        console.time('data.nodesByYear(' + year + ')');
 
         let nodesByYear, nodesByMonth, nodesByDay;
         let result = {};
@@ -280,19 +291,19 @@ const data = (function () {
             })
         });
 
-        console.timeEnd('data.nodesByYear');
+        console.timeEnd('data.nodesByYear(' + year + ')');
         return result;
     }
 
     function _nodesNew(date, tag, answercount, commentcount, questioncount, upvotes, downvotes, offensivevotes) {
         return {
             $date: date,
-            $id: '$' + tag,
-            $icon: icons[tag] ? icons[tag].id : null,
+            $id: tag ? '$' + tag : null,
+            $icon: icons[tag] ? icons[tag] : null,
             $children: null,
-            $cluster: clusters[tag],
+            $cluster: clusters[tag] ? clusters[tag] : null,
             $radius: answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes,
-            $tag: tag,
+            $tag: tag ? tag : null,
             answercount,
             commentcount,
             questioncount,

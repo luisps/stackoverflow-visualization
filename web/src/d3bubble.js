@@ -23,7 +23,7 @@ const d3bubble = (function () {
         ;
 
         // Event listeners
-        d3graph.$dispatcher.on('select.bubble', load);
+        d3graph.$dispatcher.on('click.bubble', load);
         d3graph.$dispatcher.on('tick.bubble', tick);
     }
 

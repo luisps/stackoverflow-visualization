@@ -1,0 +1,21 @@
+#heatmap {
+    height: 10rem;
+}
+
+#heatmap line,
+#heatmap path {
+    display: none;
+}
+
+#heatmap text {
+    fill: #95989A;
+}
+
+#heatmap .axis-month {
+    font-size: 0.95rem;
+    transform: translate(calc(100% / 13 / 2), 0);
+}
+#heatmap .axis-week {
+    font-size: 0.6rem;
+    transform: translate(0, calc(100% - 1.2rem));
+}

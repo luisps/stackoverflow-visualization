@@ -14,7 +14,7 @@
     position: absolute;
     left: 0.8rem;
     top: 4rem;
- 	width: calc(40% - 0.8rem);
+ 	width: 45%;
     min-width: 32rem;
     padding: 0.8rem;
     background: white;
@@ -48,10 +48,6 @@
     font-size: 0.95rem;
     font-weight: 200;
     text-transform: uppercase;
-}
-
-#heatmap {
-    height: 10rem;
 }
 
 #upvotes-downvotes {

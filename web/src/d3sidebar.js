@@ -1,7 +1,10 @@
 const d3sidebar = (function () {
 
     // Variables
-    let $dispatcher = d3.dispatch('load')
+    let $dispatcher = d3.dispatch('load'),
+        d3sidebar,
+        nodesByWeek = null,
+        nodesByDay = null
     ;
 
     return {
@@ -10,36 +13,41 @@ const d3sidebar = (function () {
     };
 
     function init() {
+        d3sidebar = d3.select('#sidebar');
+
         // Event listeners
-        d3graph.$dispatcher.on('select.sidebar', load);
+        data.$dispatcher.on('update.sidebar', load);
+        d3graph.$dispatcher.on('click.sidebar', update);
     }
 
-    function load(node) {
-        
-        //global view
-        if (node == null) {
+    function load(data) {
+        d3sidebar.select('.tag').text('es.stackoverflow.com');
 
-            d3.select('#sidebar .tag').html('Global');
+        nodesByDay = data.nodesByDay;
+        nodesByWeek = data.nodesByWeek;
+    }
 
-        }
-        else { //tag view
-
-            let tag = node.$tag,
-                year = node.$date.year
-                ;
-
-            d3.select('#sidebar .tag').html(tag);
-            console.log(data.nodesByTagByDay(year, tag));
-            console.log(node);
+    function update(node) {
+        if (node === null) { // Global
+            // TODO: enable scatter, disable pie charts
 
             $dispatcher.call('load', this, {
-                nodesByYear: data.nodesByTagByDay(year, tag),
-                nodesByWeek: data.nodesByTagByWeek(year,  tag),
+                nodesByDay,
+                nodesByWeek,
+                node: null
+            });
+        } else { // Tag
+            // TODO:
+
+            d3sidebar.select('.icon').style('background-image', "url('" + node.$icon.url + "')");
+            d3sidebar.select('.tag').text(node.$tag);
+
+            $dispatcher.call('load', this, {
+                nodesByDay: data.nodesByTagByDay(node.$date.year, node.$tag),
+                nodesByWeek: data.nodesByTagByWeek(node.$date.year, node.$tag),
                 node: node
             });
-
         }
-
     }
 
 }());
