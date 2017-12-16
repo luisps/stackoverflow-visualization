@@ -21,7 +21,7 @@ const d3scatter = (function () {
 
     function init() {
 
-        var container = document.getElementsByClassName('scatter')[0];
+        var container = document.getElementById('scatter');
         margin = {top: 20, right: 20, bottom: 50, left: 70};
 
         width = container.offsetWidth - margin.left - margin.right;

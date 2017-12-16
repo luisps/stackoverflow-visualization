@@ -21,15 +21,21 @@ const d3sidebar = (function () {
     }
 
     function load(data) {
-        d3sidebar.select('.tag').text('es.stackoverflow.com');
-
         nodesByDay = data.nodesByDay;
         nodesByWeek = data.nodesByWeek;
+
+        update(null);
     }
 
     function update(node) {
         if (node === null) { // Global
+            d3sidebar.select('#scatter').style('display', 'initial');
+            d3sidebar.select('#sub-communities').style('display', 'none');
+            d3sidebar.select('#related-communities').style('display', 'none');
             // TODO: enable scatter, disable pie charts
+
+            d3sidebar.select('.icon').style('background-image', "");
+            d3sidebar.select('.tag').text('es.stackoverflow.com');
 
             $dispatcher.call('load', this, {
                 nodesByDay,
@@ -37,9 +43,12 @@ const d3sidebar = (function () {
                 node: null
             });
         } else { // Tag
-            // TODO:
+            d3sidebar.select('#scatter').style('display', 'none');
+            d3sidebar.select('#sub-communities').style('display', 'initial');
+            d3sidebar.select('#related-communities').style('display', 'initial');
+            // TODO: disable scatter, enable pie charts
 
-            d3sidebar.select('.icon').style('background-image', "url('" + node.$icon.url + "')");
+            d3sidebar.select('.icon').style('background-image', node.$icon ? "url('" + node.$icon.url + "')" : "");
             d3sidebar.select('.tag').text(node.$tag);
 
             $dispatcher.call('load', this, {

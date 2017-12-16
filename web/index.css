@@ -24,7 +24,6 @@
     width: 6rem;
     height: 6rem;
     margin: -4rem auto 0;
-    background: url('img/icons/javascript.png');
     background-size: contain;
     border-radius: 50%;
     border: 6px solid white;
@@ -60,7 +59,8 @@
 }
 
 #sub-communities,
-#related-communities {
+#related-communities,
+#scatter {
     height: 10rem;
 }
 
