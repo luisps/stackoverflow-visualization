@@ -71,6 +71,15 @@
     height: 4.5rem;
 }
 
+#communities {
+	/*
+	make sure div isnt't shown when app starts
+	setting display:none here wouldn't work since children elements
+	don't expect empty parent containers
+	*/
+	visibility: hidden;
+}
+
 #sub-communities,
 #related-communities,
 #scatter {

@@ -19,7 +19,8 @@ const d3donut = (function () {
         donutData = null,
         colors_g = ['#3366cc', '#dc3912', '#ff9900', '#109618', '#990099', '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395', '#994499', '#22aa99', '#aaaa11', '#6633cc', '#e67300', '#8b0707', '#651067', '#329262', '#5574a6', '#3b3eac'],
         colorOthers = 'gray',
-        maxTags = 8,
+        maxTagsLegend = 8,
+        maxTagsDonut = 15,
         legendFontSize = 12
         ;
 
@@ -33,7 +34,7 @@ const d3donut = (function () {
     }
 
     function colorScale(n) {
-        return (n >= maxTags-1) ? colorOthers : googleColors(n);
+        return (n >= maxTagsDonut) ? colorOthers : googleColors(n);
     }
 
     function init() {
@@ -46,11 +47,8 @@ const d3donut = (function () {
         widthDonut = height;
         widthLegend = container.offsetWidth - widthDonut;
 
-        //control how far away the legend if from the donut
+        //control how far away the legend is from the donut
         widthLegend *= 0.85;
-
-        console.log(widthDonut);
-        console.log(widthLegend);
 
         //make outer radius occupy all of available height
         outerRadius = height / 2;
@@ -79,6 +77,10 @@ const d3donut = (function () {
 
         // Event listeners
         d3sidebar.$dispatcher.on('load.donut', (data) => {
+            //donut charts are hidden on global view
+            if (data.node == null)
+                return;
+
             selectedTag = data.node.$tag;
             links = data.node.$links;
             updateChildren();
@@ -129,7 +131,7 @@ const d3donut = (function () {
         donutData.sort(function(a, b) { return b.value - a.value; });
 
         //aggregate extra tags into others
-        donutData = donutData.slice(0, maxTags-1);
+        donutData = donutData.slice(0, maxTagsDonut);
 
         var includingTagsTotal = donutData.reduce(function(total, elem) {
             return total + elem.value;
@@ -188,7 +190,7 @@ const d3donut = (function () {
 
         //draw legend
         //must first clip data to be able to fit in legend
-        var donutDataClipped = (donutData.length > maxTags) ? donutData.slice(0, maxTags) : donutData;
+        var donutDataClipped = (donutData.length > maxTagsLegend) ? donutData.slice(0, maxTagsLegend) : donutData;
 
         svgData = legend.selectAll('.legend-item')
             .data(donutDataClipped);

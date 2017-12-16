@@ -18,6 +18,11 @@ const d3sidebar = (function () {
         // Event listeners
         data.$dispatcher.on('update.sidebar', load);
         d3graph.$dispatcher.on('click.sidebar', update);
+
+        d3sidebar.select('#communities')
+            .style('display', 'none')
+            .style('visibility', 'visible');
+
     }
 
     function load(data) {
@@ -29,9 +34,9 @@ const d3sidebar = (function () {
 
     function update(node) {
         if (node === null) { // Global
-            d3sidebar.select('#scatter').style('display', 'initial');
-            d3sidebar.select('#sub-communities').style('display', 'none');
-            d3sidebar.select('#related-communities').style('display', 'none');
+            d3sidebar.select('#communities').style('display', 'none');
+            d3sidebar.select('#scatter-container').style('display', 'flex');
+
             // TODO: enable scatter, disable pie charts
 
             d3sidebar.select('.icon').style('background-image', "");
@@ -43,13 +48,12 @@ const d3sidebar = (function () {
                 node: null
             });
         } else { // Tag
-            d3sidebar.select('#scatter').style('display', 'none');
-            d3sidebar.select('#sub-communities').style('display', 'initial');
-            d3sidebar.select('#related-communities').style('display', 'initial');
-            // TODO: disable scatter, enable pie charts
+            d3sidebar.select('#communities').style('display', 'flex');
+            d3sidebar.select('#scatter-container').style('display', 'none');
 
             d3sidebar.select('.icon').style('background-image', node.$icon ? "url('" + node.$icon.url + "')" : "");
             d3sidebar.select('.tag').text(node.$tag);
+            console.log(data.nodesByTagByDay(node.$date.year, node.$tag));
 
             $dispatcher.call('load', this, {
                 nodesByDay: data.nodesByTagByDay(node.$date.year, node.$tag),
