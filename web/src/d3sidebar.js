@@ -53,7 +53,6 @@ const d3sidebar = (function () {
 
             d3sidebar.select('.icon').style('background-image', node.$icon ? "url('" + node.$icon.url + "')" : "");
             d3sidebar.select('.tag').text(node.$tag);
-            console.log(data.nodesByTagByDay(node.$date.year, node.$tag));
 
             $dispatcher.call('load', this, {
                 nodesByDay: data.nodesByTagByDay(node.$date.getFullYear(), node.$tag),
