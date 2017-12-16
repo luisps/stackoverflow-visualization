@@ -15,15 +15,31 @@ const d3sidebar = (function () {
     }
 
     function load(node) {
-        let tag = node.$tag,
-            year = node.$date.year
-        ;
+        
+        //global view
+        if (node == null) {
 
-        $dispatcher.call('load', this, {
-            nodesByYear: data.nodesByTagByDay(year, tag),
-            nodesByWeek: data.nodesByTagByWeek(year,  tag),
-            node: node
-        });
+            d3.select('#sidebar .tag').html('Global');
+
+        }
+        else { //tag view
+
+            let tag = node.$tag,
+                year = node.$date.year
+                ;
+
+            d3.select('#sidebar .tag').html(tag);
+            console.log(data.nodesByTagByDay(year, tag));
+            console.log(node);
+
+            $dispatcher.call('load', this, {
+                nodesByYear: data.nodesByTagByDay(year, tag),
+                nodesByWeek: data.nodesByTagByWeek(year,  tag),
+                node: node
+            });
+
+        }
+
     }
 
 }());
