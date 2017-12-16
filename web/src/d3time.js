@@ -71,7 +71,7 @@ const d3time = (function () {
     }
 
     function load(data) {
-        $dispatcher.call('update', this, { year: 2017 });
+        $dispatcher.call('update', this, { year: 2016 });
         return;
 
         console.time('d3time.load');

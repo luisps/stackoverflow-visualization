@@ -1,19 +1,13 @@
 const d3heatmap = (function () {
 
-    // Constants
-    const PADDING_BOTTOM = 16;
-    const PADDING_LEFT = 6;
-    const PADDING_RIGHT = 6;
-    const TICK_FORMAT = (d) => console.log(m) || m === 0 ? '' : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
-
     // Private Variables
     let d3svg,
         d3svgDimensions,
         xAxisMonth,
         xAxisWeek,
         xScaleMonth,
-        xScaleWeek
-
+        xScaleWeek,
+        opacityScale
     ;
 
     return {
@@ -26,48 +20,57 @@ const d3heatmap = (function () {
         d3svgDimensions = { height: parseInt(d3svgDimensions.height), width: parseInt(d3svgDimensions.width) };
 
         // Initialize axis
-        xScaleMonth = d3.scaleTime().range([0, d3svgDimensions.width - d3svgDimensions.width / 13 / 2]);
+        xScaleMonth = d3.scaleTime().range([0, d3svgDimensions.width]);
         xScaleWeek = d3.scaleTime().range([0, d3svgDimensions.width - d3svgDimensions.width / 53 / 2]);
         xAxisMonth = d3.axisBottom(xScaleMonth).tickFormat(d3.timeFormat('%b'));
         xAxisWeek = d3.axisBottom(xScaleWeek).tickFormat(d3.timeFormat('%V'));
+
+        // Initialize Scales
+        opacityScale = d3.scaleLinear().range([0.1, 1]);
 
         // Event Listeners
         d3sidebar.$dispatcher.on('load.sidebar', load);
     }
 
     function load(data) {
-        let nodes = data.nodesByDay,
-            nodesByWeek = data.nodesByWeek;
+        console.time('d3heatmap.load');
+        let nodes = data.nodesByDay;
 
         // Update axis
-        let dateStart = nodesByWeek[0].$date,
-            dateEnd = nodesByWeek[nodesByWeek.length - 1].$date,
+        let dateStart = { year: nodes[0].$date.getFullYear(), month: 1, day: 1 },
+            dateEnd = { year: nodes[nodes.length - 1].$date.getFullYear(), month: 12, day: 31 },
             domain = [
-                new Date(dateStart.year, dateStart.month - 1, 1),
-                new Date(dateEnd.year, dateEnd.month - 1, 25)
+                new Date(dateStart.year, dateStart.month - 1, dateStart.day),
+                new Date(dateEnd.year, dateEnd.month - 1, dateEnd.day)
             ];
 
         xScaleMonth.domain(domain);
-        xScaleWeek.domain(domain);
+        xScaleWeek.domain(domain).nice();
 
         d3svg.select('.axis-month').call(xAxisMonth.ticks(12));
         d3svg.select('.axis-week').call(xAxisWeek.ticks(53));
-        /*
-        let weekStart = nodesByWeek[0].$date.week,
-            weekEnd = nodesByWeek[nodesByWeek.length - 1].$date.week;
 
-        console.log('months', Array.from(Array(weekEnd - weekStart + 2).keys()))
-        xScaleWeek.domain(Array.from(Array(weekEnd - weekStart + 2).keys()));
-        d3svg.select('.axis-week').call(xAxisWeek);
-        */
+        // Update scales
+        opacityScale.domain(d3.extent(nodes, (n) => n.answercount + n.commentcount + n.questioncount));
 
+        // Update chart
+        let numWeeks = Math.max(util.getWeek(dateStart.year, 12, 31), util.getWeek(dateStart.year, 12, 24)),
+            rectWidth = (d3svgDimensions.width - (numWeeks - 1) * 2) / numWeeks,
+            rectHeight = (d3svgDimensions.height - (1.7 + 0.9) * util.getRem()) / 7 - 1.5;
 
-        //console.log('weekStart', weekStart, 'weekEnd', weekEnd);
-        //console.log('heatmap data', data);
+        let chart = d3svg.select('.chart').selectAll('rect').data(nodes);
+        chart.exit().remove();          // Items to be removed
+        chart.enter().append('rect')    // Items to be added
+            .attr('x', (n) => d3.timeWeek.count(d3.timeYear(n.$date), n.$date) * (rectWidth + 2))
+            .attr('y', (n) => n.$date.getDay() * (rectHeight + 1.5))
+            .attr('width', rectWidth)
+            .attr('height', rectHeight)
+            .attr('fill', COLOR_PRIMARY)
+            .attr('opacity', (n) => opacityScale(n.answercount + n.commentcount + n.questioncount));
+        chart                           // Items to be updated
+            .attr('opacity', (n) => opacityScale(n.answercount + n.commentcount + n.questioncount));
 
-        
-
-
+        console.timeEnd('d3heatmap.load');
     }
 
 })();
