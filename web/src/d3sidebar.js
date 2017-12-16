@@ -52,8 +52,8 @@ const d3sidebar = (function () {
             d3sidebar.select('.tag').text(node.$tag);
 
             $dispatcher.call('load', this, {
-                nodesByDay: data.nodesByTagByDay(node.$date.year, node.$tag),
-                nodesByWeek: data.nodesByTagByWeek(node.$date.year, node.$tag),
+                nodesByDay: data.nodesByTagByDay(node.$date.getFullYear(), node.$tag),
+                nodesByWeek: data.nodesByTagByWeek(node.$date.getFullYear(), node.$tag),
                 node: node
             });
         }

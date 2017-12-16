@@ -19,3 +19,6 @@
     font-size: 0.6rem;
     transform: translate(0, calc(100% - 1.2rem));
 }
+#heatmap .chart {
+    transform: translate(0, 1.7rem);
+}

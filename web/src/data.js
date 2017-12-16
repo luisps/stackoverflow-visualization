@@ -76,8 +76,8 @@ const data = (function () {
 
         $dispatcher.call('update', this, {
             nodesByYear: Object.values(nodes),
-            nodesByWeek: nodesByTagByWeek(data.year),
-            nodesByDay: nodesByTagByDay(data.year),
+            nodesByWeek: nodesByTagByWeek(data.year, null),
+            nodesByDay: nodesByTagByDay(data.year, null),
             linksByYear: links
         });
 
@@ -166,7 +166,7 @@ const data = (function () {
                 day = +row['day'];
 
             let node = _nodesNew(
-                { year, month, day },
+                new Date(year, month - 1, day),
                 row['tag'],
                 +row['answercount'],
                 +row['commentcount'],
@@ -231,10 +231,10 @@ const data = (function () {
 
         Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
             Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
-                resultByDay = _nodesNew({year, month, day}, tag, 0, 0, 0, 0, 0, 0);
+                resultByDay = _nodesNew(new Date(year, month - 1, day), tag, 0, 0, 0, 0, 0, 0);
                 result.push(resultByDay);
 
-                Object.keys(tag === null ? nodesByDay[day] : {tag}).forEach((tag) => {
+                (tag === null ? Object.keys(nodesByDay[day]) : [tag]).forEach((tag) => {
                     let node = nodesByDay[day][tag] || null;
                     if (node !== null)
                         _nodesSum(resultByDay, node);
@@ -255,15 +255,15 @@ const data = (function () {
 
         Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
             Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
-                let week = _getWeek(year, month, day);
+                let week = util.getWeek(year, month, day);
 
                 if (resultByWeek === null || resultWeek !== week) {
                     resultWeek = week;
-                    resultByWeek = _nodesNew({ year, month, week }, tag, 0, 0, 0, 0, 0, 0);
+                    resultByWeek = _nodesNew(new Date(year, month - 1, 1), tag, 0, 0, 0, 0, 0, 0);
                     result.push(resultByWeek);
                 }
 
-                Object.keys(tag === null ? nodesByDay[day] : {tag}).forEach((tag) => {
+                (tag === null ? Object.keys(nodesByDay[day]) : [tag]).forEach((tag) => {
                     let node = nodesByDay[day][tag] || null;
                     if (node !== null)
                        _nodesSum(resultByWeek, node);
@@ -284,7 +284,7 @@ const data = (function () {
             Object.keys(nodesByMonth = nodesByYear[month]).forEach((day) => {
                 Object.keys(nodesByDay = nodesByMonth[day]).forEach((tag) => {
                     let node = nodesByDay[tag],
-                        resultNode = result[tag] = result[tag] || _nodesNew({ year }, tag, 0, 0, 0, 0, 0, 0);
+                        resultNode = result[tag] = result[tag] || _nodesNew(new Date(year, 0, 1), tag, 0, 0, 0, 0, 0, 0);
 
                     _nodesSum(resultNode, node);
                 })
@@ -330,16 +330,6 @@ const data = (function () {
                 _nodesSum(childResult, child);
             });
         }
-    }
-
-    // Thanks to https://gist.github.com/dblock/1081513
-    function _getWeek(year, month, day) {
-        let target = new Date(year, month - 1, day),
-            dayNr = (target.getDay() + 6) % 7,
-            jan4    = new Date(target.getFullYear(), 0, 4);
-
-        target.setDate(target.getDate() - dayNr + 3);
-        return 1 + Math.ceil((target - jan4) / 86400000 / 7);
     }
 
 }());
