@@ -32,6 +32,10 @@ const d3donut = (function () {
         return colors_g[n % colors_g.length];
     }
 
+    function colorScale(n) {
+        return (n >= maxTags) ? colorOthers : googleColors(n);
+    }
+
     function init() {
 
         //width and height will be the same for both donut charts
@@ -58,8 +62,8 @@ const d3donut = (function () {
         legendRelated = res.legend;
 
         //define color scales here
-        colorScaleChildren = googleColors;
-        colorScaleRelated = googleColors;
+        colorScaleChildren = colorScale;
+        colorScaleRelated = colorScale;
 
 		pie = d3.pie()
 			.value(function(d) { return d.value; })
@@ -71,9 +75,8 @@ const d3donut = (function () {
 
         // Event listeners
         d3sidebar.$dispatcher.on('load.donut', (data) => {
-            selectedTag = data.node.$id;
+            selectedTag = data.node.$tag;
             links = data.node.$links;
-            console.log(links);
             //updateChildren();
             updateRelated();
         });
@@ -118,7 +121,7 @@ const d3donut = (function () {
         donutData = []
         var total = 0;
         for (let d of links) {
-            var tag = (d.tag1 == selectedTag) ? d.tag1 : d.tag2;
+            var tag = (d.tag1 == selectedTag) ? d.tag2 : d.tag1;
             donutData.push({tag: tag, value: d.value});
             total += d.value;
         }
@@ -134,14 +137,19 @@ const d3donut = (function () {
         }, 0);
 
         var extraTagsTotal = total - includingTagsTotal;
-        donutData.push({tag: 'Others', value: extraTagsTotal});
+        if (extraTagsTotal != 0)
+            donutData.push({tag: 'Others', value: extraTagsTotal});
 
         //convert values to probabilities
         for (let d of donutData)
             d.value = d.value / total * 100;
 
+        console.log(selectedTag);
+        console.log(links);
+        console.log(donutData);
+
         drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
-        d3.selectAll('#related-communities .slice path').call(toolTip, svgRelated, colorScaleRelated);
+        d3.selectAll('#related-communities .slice').call(toolTip, svgRelated, colorScaleRelated);
 
     }
 
@@ -152,17 +160,14 @@ const d3donut = (function () {
 		    .data(pie(donutData));
 
         var slice = svgData
-		    .enter().append('g')
-            .merge(svgData)
+		    .enter().append('path')
 		    .attr('class', 'slice')
+            .merge(svgData)
+			.attr('d', arc)
+			.style('fill', function(d, i) { return colorScale(i); })
             ;
 
         svgData.exit().remove();
-
-        slice.append('path')
-			.attr('d', arc)
-			.style('fill', function(d, i) { return colorScale(i); })
-			;
 
         //draw legend
         svgData = legend.selectAll('g')
