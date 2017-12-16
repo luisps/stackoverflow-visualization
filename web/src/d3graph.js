@@ -3,7 +3,7 @@ const d3graph = (function () {
     // Constants
     const NODE_RADIUS_MIN = 16;
     const NODE_RADIUS_MAX = 48;
-    const NODE_FILL = (n) => n.$icon ? 'url(#' + n.$icon + ')' : selected && n.$tag === selected.$tag ? COLOR_PRIMARY : 'white';
+    const NODE_FILL = (n) => n.$icon ? 'url(#' + n.$icon.id + ')' : selected && n.$tag === selected.$tag ? COLOR_PRIMARY : 'white';
     const NODE_STROKE = (n) => selected && n.$tag === selected.$tag ? COLOR_PRIMARY : null;
     const NODE_STROKE_WIDTH = (n) => selected && n.$tag === selected.$tag ? '2' : null;
     const NODE_TAG = (n) => {
@@ -21,7 +21,7 @@ const d3graph = (function () {
                                      hovered && (l.source.$tag === hovered.$tag || l.target.$tag === hovered.$tag) ? 1 + linksWidthScale(l.value) : 0;
 
     // Private Variables
-    let $dispatcher = d3.dispatch('select', 'tick'),
+    let $dispatcher = d3.dispatch('click', 'tick'),
         $nodes = null,
         $links = null,
         d3graph = null,
@@ -86,8 +86,8 @@ const d3graph = (function () {
     function load(data) {
         console.time('d3graph.load');
 
-        $links = data.links;
-        $nodes = data.nodes;
+        $links = data.linksByYear;
+        $nodes = data.nodesByYear;
 
         // Update scales
         linksRankScale = d3.scaleLinear()
@@ -251,7 +251,7 @@ const d3graph = (function () {
         // TODO: click fora tem de permitir selecionar nada
 
         update();
-        $dispatcher.call('select', this, selected);
+        $dispatcher.call('click', this, selected);
     }
 
     function onNodeMouseOver(n) {

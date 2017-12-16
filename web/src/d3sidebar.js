@@ -1,7 +1,10 @@
 const d3sidebar = (function () {
 
     // Variables
-    let $dispatcher = d3.dispatch('load')
+    let $dispatcher = d3.dispatch('load'),
+        d3sidebar,
+        nodesByWeek = null,
+        nodesByDay = null
     ;
 
     return {
@@ -10,36 +13,50 @@ const d3sidebar = (function () {
     };
 
     function init() {
+        d3sidebar = d3.select('#sidebar');
+
         // Event listeners
-        d3graph.$dispatcher.on('select.sidebar', load);
+        data.$dispatcher.on('update.sidebar', load);
+        d3graph.$dispatcher.on('click.sidebar', update);
     }
 
-    function load(node) {
-        
-        //global view
-        if (node == null) {
+    function load(data) {
+        nodesByDay = data.nodesByDay;
+        nodesByWeek = data.nodesByWeek;
 
-            d3.select('#sidebar .tag').html('Global');
+        update(null);
+    }
 
-        }
-        else { //tag view
+    function update(node) {
+        if (node === null) { // Global
+            d3sidebar.select('#scatter').style('display', 'initial');
+            d3sidebar.select('#sub-communities').style('display', 'none');
+            d3sidebar.select('#related-communities').style('display', 'none');
+            // TODO: enable scatter, disable pie charts
 
-            let tag = node.$tag,
-                year = node.$date.year
-                ;
-
-            d3.select('#sidebar .tag').html(tag);
-            console.log(data.nodesByTagByDay(year, tag));
-            console.log(node);
+            d3sidebar.select('.icon').style('background-image', "");
+            d3sidebar.select('.tag').text('es.stackoverflow.com');
 
             $dispatcher.call('load', this, {
-                nodesByYear: data.nodesByTagByDay(year, tag),
-                nodesByWeek: data.nodesByTagByWeek(year,  tag),
+                nodesByDay,
+                nodesByWeek,
+                node: null
+            });
+        } else { // Tag
+            d3sidebar.select('#scatter').style('display', 'none');
+            d3sidebar.select('#sub-communities').style('display', 'initial');
+            d3sidebar.select('#related-communities').style('display', 'initial');
+            // TODO: disable scatter, enable pie charts
+
+            d3sidebar.select('.icon').style('background-image', node.$icon ? "url('" + node.$icon.url + "')" : "");
+            d3sidebar.select('.tag').text(node.$tag);
+
+            $dispatcher.call('load', this, {
+                nodesByDay: data.nodesByTagByDay(node.$date.year, node.$tag),
+                nodesByWeek: data.nodesByTagByWeek(node.$date.year, node.$tag),
                 node: node
             });
-
         }
-
     }
 
 }());

@@ -14,7 +14,7 @@
     position: absolute;
     left: 0.8rem;
     top: 4rem;
- 	width: calc(40% - 0.8rem);
+ 	width: 45%;
     min-width: 32rem;
     padding: 0.8rem;
     background: white;
@@ -24,7 +24,6 @@
     width: 6rem;
     height: 6rem;
     margin: -4rem auto 0;
-    background: url('img/icons/javascript.png');
     background-size: contain;
     border-radius: 50%;
     border: 6px solid white;
@@ -50,10 +49,6 @@
     text-transform: uppercase;
 }
 
-#heatmap {
-    height: 10rem;
-}
-
 #upvotes-downvotes {
 	position: relative;
     height: 4.5rem;
@@ -77,7 +72,8 @@
 }
 
 #sub-communities,
-#related-communities {
+#related-communities,
+#scatter {
 	position: relative;
     height: 10rem;
 }

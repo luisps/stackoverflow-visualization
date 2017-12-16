@@ -44,7 +44,7 @@ const d3time = (function () {
         d3svgDimensions = window.getComputedStyle(d3svg.node());
         d3svgDimensions = { height: parseInt(d3svgDimensions.height) - PADDING_BOTTOM, width: parseInt(d3svgDimensions.width) - PADDING_LEFT * 2 };
 
-        // Initialize scales
+        // Initialize axis
         xScale = d3.scalePoint().range([0, d3svgDimensions.width]);
         xScale2 = d3.scaleTime().range([0, d3svgDimensions.width]);
         yScale = d3.scaleLinear().range([0, d3svgDimensions.height]);

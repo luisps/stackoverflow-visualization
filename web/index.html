@@ -6,7 +6,7 @@
     <title>Stack Overflow Communities</title>
 
     <!-- D3 -->
-    <script	src="libs/d3.min.js" charset="utf-8"></script>
+    <script	src="libs/d3.v4.min.js" charset="utf-8"></script>
 
     <!-- Jquery -->
     <script	src="libs/jquery.min.js" charset="utf-8"></script>
@@ -23,6 +23,7 @@
     <script src="libs/calendar-heatmap/calendar-heatmap.js"></script>
 
     <!-- Source -->
+    <link href= "css/d3heatmap.css" rel="stylesheet">
     <script	src="src/constants.js" charset="utf-8"></script>
     <script	src="src/d3bubble.js" charset="utf-8"></script>
     <script	src="src/d3donut.js" charset="utf-8"></script>
@@ -69,7 +70,11 @@
             <div class="icon"></div>
             <div class="tag">Global</div>
             <div class="title">Community Activity</div>
-            <div id="heatmap"></div>
+            <svg id="heatmap">
+                <g class="axis-month"></g>
+                <g class="axis-week"></g>
+                <g class="map"></g>
+            </svg>
             <div class="title">Community Health</div>
             <div class="label">Upvotes/Downvotes</div>
             <div id="upvotes-downvotes">
@@ -78,17 +83,17 @@
             <div class="label">Offensive Reports</div>
             <!-- <div id="offensive-reports"></div> -->
             <div style="display: flex;">
-                <div class="title" style="width: 50%;">
-                    <div>Sub-Communities</div>
+                <div style="width: 50%;">
+                    <div class="title">Sub-Communities</div>
                     <div id="sub-communities"></div>
                 </div>
-                <div class="title" style="width: 50%;">
-                    <div>Related Communities</div>
+                <div style="width: 50%;">
+                    <div class="title">Related Communities</div>
                     <div id="related-communities"></div>
                 </div>
-            </div>
-            <div class="scatter">
-                <div class="tooltip"></div>
+                <div id="scatter">
+                    <div class="tooltip"></div>
+                </div>
             </div>
         </div>
         <svg id="zoom">
