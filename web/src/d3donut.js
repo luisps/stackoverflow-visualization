@@ -5,7 +5,6 @@ const d3donut = (function () {
         links = null,
         widthDonut = null,
         widthLegend = null,
-        paddingLegend = null,
         height = null,
         svgChildren = null,
         svgRelated = null,
@@ -20,7 +19,8 @@ const d3donut = (function () {
         donutData = null,
         colors_g = ['#3366cc', '#dc3912', '#ff9900', '#109618', '#990099', '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395', '#994499', '#22aa99', '#aaaa11', '#6633cc', '#e67300', '#8b0707', '#651067', '#329262', '#5574a6', '#3b3eac'],
         colorOthers = 'gray',
-        maxTags = 8;
+        maxTags = 8,
+        legendFontSize = 12
         ;
 
     return {
@@ -33,7 +33,7 @@ const d3donut = (function () {
     }
 
     function colorScale(n) {
-        return (n >= maxTags) ? colorOthers : googleColors(n);
+        return (n >= maxTags-1) ? colorOthers : googleColors(n);
     }
 
     function init() {
@@ -44,9 +44,13 @@ const d3donut = (function () {
         height = container.offsetHeight;
 
         widthDonut = height;
-        widthLegend = height * 0.4;
-        paddingLegend = height * 0.05;
-        container.style.width = (widthDonut + paddingLegend + widthLegend) + 'px';
+        widthLegend = container.offsetWidth - widthDonut;
+
+        //control how far away the legend if from the donut
+        widthLegend *= 0.85;
+
+        console.log(widthDonut);
+        console.log(widthLegend);
 
         //make outer radius occupy all of available height
         outerRadius = height / 2;
@@ -62,7 +66,7 @@ const d3donut = (function () {
         legendRelated = res.legend;
 
         //define color scales here
-        colorScaleChildren = colorScale;
+        colorScaleChildren = googleColors;
         colorScaleRelated = colorScale;
 
 		pie = d3.pie()
@@ -77,31 +81,9 @@ const d3donut = (function () {
         d3sidebar.$dispatcher.on('load.donut', (data) => {
             selectedTag = data.node.$tag;
             links = data.node.$links;
-            //updateChildren();
+            updateChildren();
             updateRelated();
         });
-
-    }
-
-    function createChart(selector) {
-
-        var chart = d3.select(selector);
-
-        var svgDonut = chart.append('svg')
-            .attr('width', widthDonut)
-            .attr('height', height)
-            .append('g')
-            .attr('transform', 'translate('+widthDonut/2+','+height/2+')')
-            ;
-
-        var svgLegend = chart.append('svg')
-            .attr('width', widthLegend)
-            .attr('height', height)
-            .style('padding-left', paddingLegend + 'px')
-            .attr('class', 'donut-legend');
-            ;
-
-        return {donut: svgDonut, legend: svgLegend};
 
     }
 
@@ -109,8 +91,25 @@ const d3donut = (function () {
         if (selectedTag == null)
             return;
 
-        //drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
-        //d3.selectAll('#sub-communities .slice path').call(toolTip, svgChildren, colorScaleChildren);
+        //very similar code to related
+        //here instead we don't do aggregating into others
+        donutData = []
+        var total = 0;
+        for (let d of links) {
+            var tag = (d.tag1 == selectedTag) ? d.tag2 : d.tag1;
+            donutData.push({tag: tag, value: d.value});
+            total += d.value;
+        }
+
+        //must sort array first
+        donutData.sort(function(a, b) { return b.value - a.value; });
+
+        //convert values to probabilities
+        for (let d of donutData)
+            d.value = d.value / total * 100;
+
+        drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
+        d3.selectAll('#sub-communities .slice').call(toolTip, svgChildren, colorScaleChildren);
 
     }
 
@@ -130,7 +129,7 @@ const d3donut = (function () {
         donutData.sort(function(a, b) { return b.value - a.value; });
 
         //aggregate extra tags into others
-        donutData = donutData.slice(0, maxTags);
+        donutData = donutData.slice(0, maxTags-1);
 
         var includingTagsTotal = donutData.reduce(function(total, elem) {
             return total + elem.value;
@@ -144,12 +143,30 @@ const d3donut = (function () {
         for (let d of donutData)
             d.value = d.value / total * 100;
 
-        console.log(selectedTag);
-        console.log(links);
-        console.log(donutData);
-
         drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
         d3.selectAll('#related-communities .slice').call(toolTip, svgRelated, colorScaleRelated);
+
+    }
+
+    function createChart(selector) {
+
+        var chart = d3.select(selector);
+
+        var donut = chart.append('svg')
+            .attr('width', widthDonut)
+            .attr('height', height)
+            .attr('class', 'donut-chart')
+            .append('g')
+            .attr('transform', 'translate('+widthDonut/2+','+height/2+')')
+            ;
+
+        var legend = chart.append('svg')
+            .style('width', widthLegend + 'px')
+            .style('height', height + 'px')
+            .attr('class', 'donut-legend')
+            ;
+
+        return {donut: donut, legend: legend};
 
     }
 
@@ -170,34 +187,45 @@ const d3donut = (function () {
         svgData.exit().remove();
 
         //draw legend
-        svgData = legend.selectAll('g')
-            .data(donutData);
+        //must first clip data to be able to fit in legend
+        var donutDataClipped = (donutData.length > maxTags) ? donutData.slice(0, maxTags) : donutData;
 
-        var g = svgData
-		    .enter()
-            .append('g')
-            ;
+        svgData = legend.selectAll('.legend-item')
+            .data(donutDataClipped);
 
-        g.append('text')
-            .attr('font-size', '10px')
-            .attr('dominant-baseline', 'central')
-            .attr('x', '14px')
-            .attr('y', function(d, i) { return 10 * i + 4 + 'px'; })
-            .merge(svgData)
+        var item = svgData
+		    .enter().append('g')
+		    .attr('class', 'legend-item')
+            .style('font-size', legendFontSize + 'px')
+            .attr('transform', function(d, i) {
+                //calculate y pos for rectangle and tag
+                return 'translate(0, ' + (i+1)*legendFontSize + ')';
+            });
+        
+        //create text for tag name
+        item
+            .append('text')
+            .attr('x', '1.2em')
             .text(function(d) { return d.tag; })
             ;
 
-        g.append('rect')
-            .attr('x', 0)
-            .attr('y', function(d, i) { return 10 * i + 'px'; })
-            .attr('width', '8px')
-            .attr('height', '8px')
+        //create a rect with tag's color
+        item
+            .append('rect')
+            .attr('width', '0.8em')
+            .attr('height', '0.8em')
+            .attr('y', '-0.7em')  // 0.5em to get text's half height and 0.2 em for initial vertical padding
 			.style('fill', function(d, i) { return colorScale(i); })
             ;
 
-        svgData.exit().remove();
+        //update on data change
+        svgData.select('text')
+            .text(function(d) { return d.tag; });
 
-        svg.selectAll('.toolCircle').attr('visibility', 'visible');
+        svgData.select('rect')
+			.style('fill', function(d, i) { return colorScale(i); })
+
+        svgData.exit().remove();
 
     }
 
