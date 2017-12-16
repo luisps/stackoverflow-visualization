@@ -57,12 +57,8 @@ const d3scatter = (function () {
         createChart(container);
 
         // Event listeners
-        data.$dispatcher.on('load.scatter', (dateMin, dateMax) => {
-            nodes = Object.values(data.nodesByYear(year));
-            update();
-        });
-
-    }   
+        d3sidebar.$dispatcher.on('load.scatter', update);
+    }
 
     function createChart(container) {
 
@@ -144,7 +140,9 @@ const d3scatter = (function () {
 
     }
 
-    function update() {
+    function update(data) {
+
+        nodes = data.nodesByYear;
 
         //xScale.domain([1, d3.max(nodes, function(n) { return n[xMetric]; })]);
         //yScale.domain([1, d3.max(nodes, function(n) { return n[yMetric]; })]);

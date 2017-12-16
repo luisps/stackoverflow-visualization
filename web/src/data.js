@@ -20,8 +20,7 @@ const data = (function () {
         $dispatcher,
         load,
         nodesByTagByDay,
-        nodesByTagByWeek,
-        nodesByYear
+        nodesByTagByWeek
     };
 
     function load(region) {
@@ -46,7 +45,7 @@ const data = (function () {
                         linksLoad(data);
                         console.timeEnd('data.load.skills');
 
-                        $dispatcher.call('load', this, { dateMin, dateMax });
+                        $dispatcher.call('load', this, { dateMin, dateMax, nodesByWeek: nodesByTagByWeek(null, null) });
                     });
                 });
             });
@@ -56,11 +55,11 @@ const data = (function () {
         d3time.$dispatcher.on('update.data', update);
     }
 
-    function update(data) {
-        console.time('data.time');
+    function update(year) {
+        console.time('data.update');
 
-        let nodes = nodesByYear(data.year),
-            links = linksByYear(data.year)
+        let nodes = nodesByYear(year),
+            links = linksByYear(year)
         ;
 
         // Merge links with nodes
@@ -75,32 +74,13 @@ const data = (function () {
         });
 
         $dispatcher.call('update', this, {
+            nodesByDay: nodesByTagByDay(year, null),
+            nodesByWeek: nodesByTagByWeek(year, null),
             nodesByYear: Object.values(nodes),
-            nodesByWeek: nodesByTagByWeek(data.year, null),
-            nodesByDay: nodesByTagByDay(data.year, null),
             linksByYear: links
         });
 
-        /*
-        console.log('data.update()', 'dateStart', data.dateStart, 'dateEnd', data.dateEnd)      ;
-
-        let dateStart = data.dateStart,
-            dateEnd = data.dateEnd,
-
-            nodesDelta = deltaNodes(dateStart, dateEnd),
-            //nodesSeries = seriesNodes(dateStart, dateEnd),
-            linksDelta = deltaLinks(dateStart, dateEnd, nodesDelta)
-        ;
-
-        $dispatcher.call('update', this, {
-            dateStart,
-            dateEnd,
-            links: linksDelta,
-            nodes: nodesDelta
-        });
-        */
-
-        console.timeEnd('data.time');
+        console.timeEnd('data.update');
     }
 
     function clustersLoad(data) {
@@ -229,17 +209,19 @@ const data = (function () {
         let result = [],
             resultByDay = null;
 
-        Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
-            Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
-                resultByDay = _nodesNew(new Date(year, month - 1, day), tag, 0, 0, 0, 0, 0, 0);
-                result.push(resultByDay);
+        (year === null ? Object.keys(nodes) : [year]).forEach((year) => {
+            Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
+                Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
+                    resultByDay = _nodesNew(new Date(year, month - 1, day), tag, 0, 0, 0, 0, 0, 0);
+                    result.push(resultByDay);
 
-                (tag === null ? Object.keys(nodesByDay[day]) : [tag]).forEach((tag) => {
-                    let node = nodesByDay[day][tag] || null;
-                    if (node !== null)
-                        _nodesSum(resultByDay, node);
-                });
-            })
+                    (tag === null ? Object.keys(nodesByDay[day]) : [tag]).forEach((tag) => {
+                        let node = nodesByDay[day][tag] || null;
+                        if (node !== null)
+                            _nodesSum(resultByDay, node);
+                    });
+                })
+            });
         });
 
         console.timeEnd('data.nodesByTagByDay(' + year + ',' + tag + ')');
@@ -253,22 +235,24 @@ const data = (function () {
             resultByWeek = null,
             resultWeek = null;
 
-        Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
-            Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
-                let week = util.getWeek(year, month, day);
+        (year === null ? Object.keys(nodes) : [year]).forEach((year) => {
+            Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
+                Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
+                    let week = util.getWeek(year, month, day);
 
-                if (resultByWeek === null || resultWeek !== week) {
-                    resultWeek = week;
-                    resultByWeek = _nodesNew(new Date(year, month - 1, 1), tag, 0, 0, 0, 0, 0, 0);
-                    result.push(resultByWeek);
-                }
+                    if (resultByWeek === null || resultWeek !== week) {
+                        resultWeek = week;
+                        resultByWeek = _nodesNew(new Date(year, month - 1, day), tag, 0, 0, 0, 0, 0, 0);
+                        result.push(resultByWeek);
+                    }
 
-                (tag === null ? Object.keys(nodesByDay[day]) : [tag]).forEach((tag) => {
-                    let node = nodesByDay[day][tag] || null;
-                    if (node !== null)
-                       _nodesSum(resultByWeek, node);
-                });
-            })
+                    (tag === null ? Object.keys(nodesByDay[day]) : [tag]).forEach((tag) => {
+                        let node = nodesByDay[day][tag] || null;
+                        if (node !== null)
+                           _nodesSum(resultByWeek, node);
+                    });
+                })
+            });
         });
 
         console.timeEnd('data.nodesByTagByWeek(' + year + ',' + tag + ')');

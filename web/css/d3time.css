@@ -1,0 +1,22 @@
+#time {
+    padding: 0 12px;
+}
+
+#time .axis line {
+    stroke: #95989A;
+}
+#time .axis text {
+    font-size: 1.5rem;
+}
+
+/* Hide default axis and ticks */
+#time .axis path,
+#time .axis .tick:first-of-type line,
+#time .axis .tick:last-of-type {
+    display: none;
+}
+
+#time .focus rect {
+    cursor: pointer;
+    fill: white;
+}

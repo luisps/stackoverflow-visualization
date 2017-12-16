@@ -3,8 +3,9 @@ const d3sidebar = (function () {
     // Variables
     let $dispatcher = d3.dispatch('load'),
         d3sidebar,
+        nodesByDay = null,
         nodesByWeek = null,
-        nodesByDay = null
+        nodesByYear = null
     ;
 
     return {
@@ -28,11 +29,14 @@ const d3sidebar = (function () {
     function load(data) {
         nodesByDay = data.nodesByDay;
         nodesByWeek = data.nodesByWeek;
+        nodesByYear = data.nodesByYear;
 
         update(null);
     }
 
     function update(node) {
+        console.time('d3sidebar.update');
+
         if (node === null) { // Global
             d3sidebar.select('#communities').style('display', 'none');
             d3sidebar.select('#scatter-container').style('display', 'flex');
@@ -45,6 +49,7 @@ const d3sidebar = (function () {
             $dispatcher.call('load', this, {
                 nodesByDay,
                 nodesByWeek,
+                nodesByYear,
                 node: null
             });
         } else { // Tag
@@ -60,6 +65,8 @@ const d3sidebar = (function () {
                 node: node
             });
         }
+
+        console.timeEnd('d3sidebar.update');
     }
 
 }());

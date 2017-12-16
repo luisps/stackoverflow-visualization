@@ -22,6 +22,7 @@ const d3heatmap = (function () {
         // Initialize axis
         xScaleMonth = d3.scaleTime().range([0, d3svgDimensions.width]);
         xScaleWeek = d3.scaleTime().range([0, d3svgDimensions.width - d3svgDimensions.width / 53 / 2]);
+
         xAxisMonth = d3.axisBottom(xScaleMonth).tickFormat(d3.timeFormat('%b'));
         xAxisWeek = d3.axisBottom(xScaleWeek).tickFormat(d3.timeFormat('%V'));
 
@@ -68,6 +69,8 @@ const d3heatmap = (function () {
             .attr('fill', COLOR_PRIMARY)
             .attr('opacity', (n) => opacityScale(n.answercount + n.commentcount + n.questioncount));
         chart                           // Items to be updated
+            .attr('x', (n) => d3.timeWeek.count(d3.timeYear(n.$date), n.$date) * (rectWidth + 2))
+            .attr('y', (n) => n.$date.getDay() * (rectHeight + 1.5))
             .attr('opacity', (n) => opacityScale(n.answercount + n.commentcount + n.questioncount));
 
         console.timeEnd('d3heatmap.load');
