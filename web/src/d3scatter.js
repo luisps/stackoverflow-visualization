@@ -54,6 +54,18 @@ const d3scatter = (function () {
             .clamp(true)
             .range([height, 0]);
 
+        createChart(container);
+
+        // Event listeners
+        data.$dispatcher.on('load.scatter', (dateMin, dateMax) => {
+            nodes = Object.values(data.nodesByYear(year));
+            update();
+        });
+
+    }   
+
+    function createChart(container) {
+
         svg = d3.select(container).append('svg')
             .attr('width', width + margin.left + margin.right)
             .attr('height', height + margin.top + margin.bottom)
@@ -63,24 +75,6 @@ const d3scatter = (function () {
 
         tooltip = d3.select(container).select('.tooltip');
 
-        // Event listeners
-        data.$dispatcher.on('load.scatter', (dateMin, dateMax) => {
-            nodes = Object.values(data.nodesByYear(year));
-            update();
-        });
-
-
-    }   
-
-    function update() {
-        console.log(nodes);
-
-        //xScale.domain([1, d3.max(nodes, function(n) { return n[xMetric]; })]);
-        //yScale.domain([1, d3.max(nodes, function(n) { return n[yMetric]; })]);
-
-        xScale.domain(d3.extent(nodes, function(n) { return n[xMetric]; }));
-        yScale.domain(d3.extent(nodes, function(n) { return n[yMetric]; }));
-
 		//X axis
         svg.append('g')
             .attr('transform', 'translate(0,' + height + ')')
@@ -88,6 +82,7 @@ const d3scatter = (function () {
             ;
 
         svg.append('text')             
+            .attr('class', 'scatter-x-axis')
 			.attr('transform', 'translate(' + (width/2) + ' ,' + 
 						   (height + margin.top + 20) + ')')
 			.style('text-anchor', 'middle')
@@ -99,12 +94,64 @@ const d3scatter = (function () {
             ;
 
 		svg.append('text')
+            .attr('class', 'scatter-y-axis')
 			.attr('transform', 'rotate(-90)')
 			.attr('y', - margin.left)
 			.attr('x', - (height / 2))
 			.attr('dy', '1em')
 			.style('text-anchor', 'middle')
 			.text(yLabel);
+
+        d3.selectAll('#scatter-container .metrics p').call(metrics);
+
+    }
+
+    function metrics(selection) {
+
+        selection.on('click', function () {
+
+            selection.attr('class', '');
+            this.setAttribute('class', 'active');
+
+            var text = this.innerHTML;
+
+            if (text == 'Ques-Ans') {
+                xMetric = 'questioncount';
+                yMetric = 'answercount';
+
+                xLabel = 'Questions';
+                yLabel = 'Answers';
+            } else if (text == 'Ans-Comm') {
+                xMetric = 'answercount';
+                yMetric = 'commentcount';
+
+                xLabel = 'Answers';
+                yLabel = 'Comments';
+            } else if (text == 'UpVotes-DownVotes') {
+                xMetric = 'upvotes';
+                yMetric = 'downvotes';
+
+                xLabel = 'Upvotes';
+                yLabel = 'Downvotes';
+            }
+
+            //update axis labels
+            svg.select('.scatter-x-axis').text(xLabel);
+            svg.select('.scatter-y-axis').text(yLabel);
+
+            update();
+        });
+
+    }
+
+    function update() {
+
+        //xScale.domain([1, d3.max(nodes, function(n) { return n[xMetric]; })]);
+        //yScale.domain([1, d3.max(nodes, function(n) { return n[yMetric]; })]);
+
+        xScale.domain(d3.extent(nodes, function(n) { return n[xMetric]; }));
+        yScale.domain(d3.extent(nodes, function(n) { return n[yMetric]; }));
+
 
 		var dot = svg.selectAll('.dot')
 			.data(nodes);
@@ -113,13 +160,16 @@ const d3scatter = (function () {
 			.attr('class', 'dot')
             .attr('r', 4)
             .attr('fill', function(d, i) { return d3donut.googleColors(i); })
+            .attr('cy', height)  // set y here for smooth transition
             .merge(dot)
+            .call(toolTip)
+            .transition()
             .attr('cx', function(d) { return xScale(d[xMetric]); })
             .attr('cy', function(d) { return yScale(d[yMetric]); })
-            .call(toolTip)
             ;
 
         dot.exit().remove();
+
     }   
 
     function toolTip(selection) {
