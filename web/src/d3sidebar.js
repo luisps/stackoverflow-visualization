@@ -16,13 +16,13 @@ const d3sidebar = (function () {
     function init() {
         d3sidebar = d3.select('#sidebar');
 
-        // Event listeners
-        data.$dispatcher.on('update.sidebar', load);
-        d3graph.$dispatcher.on('click.sidebar', update);
-
         d3sidebar.select('#communities')
             .style('display', 'none')
             .style('visibility', 'visible');
+
+        // Event listeners
+        data.$dispatcher.on('update.sidebar', load);
+        d3graph.$dispatcher.on('click.sidebar', update);
 
     }
 

@@ -94,13 +94,15 @@
 	flex: 1;
 }
 
-.scatter-x-axis path, .scatter-y-axis path {
+.scatter-x-axis line, .scatter-y-axis line {
 	stroke: gray;
+	stroke-width: 1px;
 }
 
-.scatter-x-label, .scatter-y-label {
+.scatter-x-axis text, .scatter-y-axis text {
     fill: #555;
-	font-size: 1.0rem;
+	font-size: 0.9rem;
+	text-anchor: middle;
 }
 
 .donut-chart {
@@ -162,33 +164,10 @@
     border-color: #555 transparent transparent transparent;
 }
 
-.metrics {
-	overflow: hidden;
-	display: inline-block;
-    background-color: #555;
-}
-
-.metrics p {
-	float: left;
-	color: #f2f2f2;
-	text-align: center;
-	padding-top: 0.5rem;
-	padding-bottom: 0.125rem;
-	font-size: 0.7rem;
-	margin: 0;
-	padding-left: 0.2rem;
-	padding-right: 0V2rem;
-	cursor: default;
-}
-
-.metrics p:hover {
-  background-color: #ddd;
-  color: black;
-}
-
-.metrics p.active {
-  background-color: #4CAF50;
-  color: white;
+#metrics .mdl-tabs__tab {
+	font-size: 10px;
+	padding: 0 14px;
+	/*line-height: 22px;*/
 }
 
 @media screen and (min-width: 1920px)                           {  html { font-size: 16px; }  }

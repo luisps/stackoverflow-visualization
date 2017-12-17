@@ -6,7 +6,6 @@ const d3scatter = (function () {
         width = null,
         height = null,
         margin = null,
-        padding = null,
         xMetric = null,
         yMetric = null,
         xLabel = null,
@@ -29,28 +28,25 @@ const d3scatter = (function () {
         width = container.offsetWidth - margin.left - margin.right;
         height = container.offsetHeight - margin.top - margin.bottom;
 
-        //hardcoded year
-        var year = 2017;
-
         //metrics to plot on the x and y axis
-        xMetric = 'answercount';
-        yMetric = 'commentcount';
+        xMetric = 'questioncount';
+        yMetric = 'answercount';
 
-        xLabel = 'Answers';
-        yLabel = 'Comments';
+        xLabel = 'Questions';
+        yLabel = 'Answers';
 
-        padding = {top: 10, right: 15, bottom: 10, left: 10};
+        //add some padding so that there aren't dots on the origin
+        //or on the top right corner of graph
+        var padding = {top: 10, right: 15, bottom: 10, left: 10};
         xScale = d3.scaleLog()
             .base(10)
             .clamp(true)
             .range([padding.left, width - padding.right]);
-            //.range([0, width]);
 
         yScale = d3.scaleLog()
             .base(10)
             .clamp(true)
             .range([height - padding.top, padding.bottom]);
-            //.range([height, 0]);
 
         createChart(container);
 
@@ -77,102 +73,80 @@ const d3scatter = (function () {
 
         tooltip = d3.select(container).select('.tooltip');
 
-        filter = svg.append('defs')
-            .append('filter')
-            .attr('id', 'dot-style')
-            //.attr('width', '200%')
-            //.attr('height', '200%')
+        //define gradient to be used for coloring dots
+        gradient = svg.append('defs')
+            .append('radialGradient')
+            .attr('id', 'dot-fill')
+            .attr('cx', '50%')
+            .attr('cy', '50%')
+            .attr('r', '50%')
+            .attr('fx', '50%')
+            .attr('fy', '50%')
             ;
 
-        /*
-        <feOffset result="offOut" in="SourceAlpha" dx="20" dy="20" />
-        <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
-        <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
-        */
-
-        /*
-        filter.append('feOffset')
-            .attr('result', 'offOut')
-            .attr('in', 'SourceGraphic')
-            .attr('dx', 2)
-            .attr('dy', 2)
+        gradient.append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', 'white')
             ;
 
-        filter.append('feBlend')
-            .attr('in', 'sourceGraphic')
-            .attr('in2', 'blurOut')
-            .attr('mode', 'normal')
-            ;
-        */
-
-        filter.append('feGaussianBlur')
-            .attr('result', 'sourceGraphic')
-            .attr("stdDeviation", 2)
+        gradient.append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', COLOR_PRIMARY)
             ;
 
 		//X axis
-        svg.append('g')
+        var xAxis = svg.append('g')
             .attr('class', 'scatter-x-axis')
             .attr('transform', 'translate(0,' + height + ')')
-            .call(d3.axisBottom(
-                d3.scaleLinear().range([0, width])).ticks(0))
-            //.call(d3.axisBottom(xScale).ticks(0))
             ;
 
-        svg.append('text')             
-            .attr('class', 'scatter-x-label')
+        xAxis.append('line')
+            .attr('x1', 0)
+            .attr('y1', 0)
+            .attr('x2', width)
+            .attr('y2', 0)
+            ;
+
+        xAxis.append('text')             
 			.attr('transform', 'translate(' + (width/2) + ' ,' + 
-						   (height + margin.bottom - 15) + ')')
-			.style('text-anchor', 'middle')
+						   (margin.bottom - 15) + ')')
 			.text(xLabel);
 
 		//Y axis
-        svg.append('g')
+        var yAxis = svg.append('g')
             .attr('class', 'scatter-y-axis')
-            .call(d3.axisLeft(
-                d3.scaleLinear().range([height, 0])).ticks(0))
-            //.call(d3.axisLeft(yScale).ticks(0))
             ;
 
-		svg.append('text')
-            .attr('class', 'scatter-y-label')
+        yAxis.append('line')
+            .attr('x1', 0)
+            .attr('y1', 0)
+            .attr('x2', 0)
+            .attr('y2', height)
+            ;
+
+		yAxis.append('text')
 			.attr('transform', 'rotate(-90)')
-			.attr('y', - margin.left + 8)
+			.attr('y', - margin.left + 10)
 			.attr('x', - (height / 2))
 			.attr('dy', '1em')
-			.style('text-anchor', 'middle')
 			.text(yLabel);
 
-        d3.selectAll('#scatter-container .metrics p').call(metrics);
+        d3.selectAll('#metrics .mdl-tabs__tab').call(metrics);
 
     }
 
     function update() {
 
-        //xScale.domain([1, d3.max(nodes, function(n) { return n[xMetric]; })]);
-        //yScale.domain([1, d3.max(nodes, function(n) { return n[yMetric]; })]);
-
-        var xDomain = d3.extent(nodes, function(n) { return n[xMetric]; });
-        var yDomain = d3.extent(nodes, function(n) { return n[yMetric]; });
-
-        //console.log(xDomain);
-        //console.log(d3.quantile(nodes, 0.25, function(n) { return n[xMetric]; }));
-        //console.log(d3.quantile(nodes, 0.75, function(n) { return n[xMetric]; }));
-        //xDomain[0] -= d3.quantile(nodes, 0.25);
-        //xDomain[1] += d3.quantile(nodes, 0.75);
-
-        xScale.domain(xDomain);
-        yScale.domain(yDomain);
-
+        xScale.domain(d3.extent(nodes, function(n) { return n[xMetric]; }));
+        yScale.domain(d3.extent(nodes, function(n) { return n[yMetric]; }));
 
 		var dot = svg.selectAll('.dot')
 			.data(nodes);
 
 		dot.enter().append('circle')
 			.attr('class', 'dot')
-            .attr("filter", "url(#dot-style)")
             .attr('r', 5)
-            .attr('fill', function(d, i) { return d3donut.googleColors(i); })
+            .attr('fill', 'url(#dot-fill)')
             .attr('cy', height)  // set y here for smooth transition
             .merge(dot)
             .call(toolTip)
@@ -189,24 +163,24 @@ const d3scatter = (function () {
 
         selection.on('click', function () {
 
-            selection.attr('class', '');
-            this.setAttribute('class', 'active');
+            selection.attr('class', 'mdl-tabs__tab');
+            this.setAttribute('class', 'mdl-tabs__tab is-active');
 
-            var text = this.innerHTML;
+            var text = this.innerText;
 
-            if (text == 'Ques-Ans') {
+            if (text == 'QUESTIONS-ANSWERS') {
                 xMetric = 'questioncount';
                 yMetric = 'answercount';
 
                 xLabel = 'Questions';
                 yLabel = 'Answers';
-            } else if (text == 'Ans-Comm') {
+            } else if (text == 'ANSWERS-COMMENTS') {
                 xMetric = 'answercount';
                 yMetric = 'commentcount';
 
                 xLabel = 'Answers';
                 yLabel = 'Comments';
-            } else if (text == 'UpVotes-DownVotes') {
+            } else if (text == 'UPVOTES-DOWNVOTES') {
                 xMetric = 'upvotes';
                 yMetric = 'downvotes';
 
@@ -215,10 +189,11 @@ const d3scatter = (function () {
             }
 
             //update axis labels
-            svg.select('.scatter-x-label').text(xLabel);
-            svg.select('.scatter-y-label').text(yLabel);
+            svg.select('.scatter-x-axis text').text(xLabel);
+            svg.select('.scatter-y-axis text').text(yLabel);
 
             update();
+
         });
 
     }
