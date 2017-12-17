@@ -146,16 +146,14 @@
     border-color: #555 transparent transparent transparent;
 }
 
-.scatter {
-	position: absolute;
-	bottom: 5%;
-	height: 150px;
-	width: 80%;
-	left: 50%;
-	z-index: -10;
-	transform: translate(-50%, 0);
+.scatter-x-axis path, .scatter-y-axis path {
+	stroke: gray;
 }
 
+.scatter-x-label, .scatter-y-label {
+    fill: #555;
+	font-size: 1.0rem;
+}
 
 .metrics {
 	overflow: hidden;

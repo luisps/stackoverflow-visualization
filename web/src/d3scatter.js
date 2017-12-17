@@ -6,13 +6,15 @@ const d3scatter = (function () {
         width = null,
         height = null,
         margin = null,
+        padding = null,
         xMetric = null,
         yMetric = null,
         xLabel = null,
         yLabel = null,
         xScale = null,
         yScale = null,
-        tooltip = null
+        tooltip = null,
+        filter = null
     ;   
 
     return {
@@ -22,7 +24,7 @@ const d3scatter = (function () {
     function init() {
 
         var container = document.getElementById('scatter');
-        margin = {top: 20, right: 20, bottom: 50, left: 70};
+        margin = {top: 10, right: 20, bottom: 35, left: 35};
 
         width = container.offsetWidth - margin.left - margin.right;
         height = container.offsetHeight - margin.top - margin.bottom;
@@ -37,27 +39,27 @@ const d3scatter = (function () {
         xLabel = 'Answers';
         yLabel = 'Comments';
 
-        /*
-        xScale = d3.scaleLinear()
-            .range([0, width]);
-
-        yScale = d3.scaleLinear()
-            .range([height, 0]);
-        */
+        padding = {top: 10, right: 15, bottom: 10, left: 10};
         xScale = d3.scaleLog()
-            .base(2)
+            .base(10)
             .clamp(true)
-            .range([0, width]);
+            .range([padding.left, width - padding.right]);
+            //.range([0, width]);
 
         yScale = d3.scaleLog()
-            .base(2)
+            .base(10)
             .clamp(true)
-            .range([height, 0]);
+            .range([height - padding.top, padding.bottom]);
+            //.range([height, 0]);
 
         createChart(container);
 
         // Event listeners
-        d3sidebar.$dispatcher.on('load.scatter', update);
+        d3sidebar.$dispatcher.on('load.scatter', (data) => {
+            nodes = data.nodesByYear;
+            update();
+        });
+
     }
 
     function createChart(container) {
@@ -71,28 +73,67 @@ const d3scatter = (function () {
 
         tooltip = d3.select(container).select('.tooltip');
 
+        filter = svg.append('defs')
+            .append('filter')
+            .attr('id', 'dot-style')
+            //.attr('width', '200%')
+            //.attr('height', '200%')
+            ;
+
+        /*
+        <feOffset result="offOut" in="SourceAlpha" dx="20" dy="20" />
+        <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
+        <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+        */
+
+        /*
+        filter.append('feOffset')
+            .attr('result', 'offOut')
+            .attr('in', 'SourceGraphic')
+            .attr('dx', 2)
+            .attr('dy', 2)
+            ;
+
+        filter.append('feBlend')
+            .attr('in', 'sourceGraphic')
+            .attr('in2', 'blurOut')
+            .attr('mode', 'normal')
+            ;
+        */
+
+        filter.append('feGaussianBlur')
+            .attr('result', 'sourceGraphic')
+            .attr("stdDeviation", 2)
+            ;
+
 		//X axis
         svg.append('g')
+            .attr('class', 'scatter-x-axis')
             .attr('transform', 'translate(0,' + height + ')')
-            .call(d3.axisBottom(xScale))
+            .call(d3.axisBottom(
+                d3.scaleLinear().range([0, width])).ticks(0))
+            //.call(d3.axisBottom(xScale).ticks(0))
             ;
 
         svg.append('text')             
-            .attr('class', 'scatter-x-axis')
+            .attr('class', 'scatter-x-label')
 			.attr('transform', 'translate(' + (width/2) + ' ,' + 
-						   (height + margin.top + 20) + ')')
+						   (height + margin.bottom - 15) + ')')
 			.style('text-anchor', 'middle')
 			.text(xLabel);
 
 		//Y axis
         svg.append('g')
-            .call(d3.axisLeft(yScale))
+            .attr('class', 'scatter-y-axis')
+            .call(d3.axisLeft(
+                d3.scaleLinear().range([height, 0])).ticks(0))
+            //.call(d3.axisLeft(yScale).ticks(0))
             ;
 
 		svg.append('text')
-            .attr('class', 'scatter-y-axis')
+            .attr('class', 'scatter-y-label')
 			.attr('transform', 'rotate(-90)')
-			.attr('y', - margin.left)
+			.attr('y', - margin.left + 8)
 			.attr('x', - (height / 2))
 			.attr('dy', '1em')
 			.style('text-anchor', 'middle')
@@ -101,6 +142,44 @@ const d3scatter = (function () {
         d3.selectAll('#scatter-container .metrics p').call(metrics);
 
     }
+
+    function update() {
+
+        //xScale.domain([1, d3.max(nodes, function(n) { return n[xMetric]; })]);
+        //yScale.domain([1, d3.max(nodes, function(n) { return n[yMetric]; })]);
+
+        var xDomain = d3.extent(nodes, function(n) { return n[xMetric]; });
+        var yDomain = d3.extent(nodes, function(n) { return n[yMetric]; });
+
+        //console.log(xDomain);
+        //console.log(d3.quantile(nodes, 0.25, function(n) { return n[xMetric]; }));
+        //console.log(d3.quantile(nodes, 0.75, function(n) { return n[xMetric]; }));
+        //xDomain[0] -= d3.quantile(nodes, 0.25);
+        //xDomain[1] += d3.quantile(nodes, 0.75);
+
+        xScale.domain(xDomain);
+        yScale.domain(yDomain);
+
+
+		var dot = svg.selectAll('.dot')
+			.data(nodes);
+
+		dot.enter().append('circle')
+			.attr('class', 'dot')
+            .attr("filter", "url(#dot-style)")
+            .attr('r', 5)
+            .attr('fill', function(d, i) { return d3donut.googleColors(i); })
+            .attr('cy', height)  // set y here for smooth transition
+            .merge(dot)
+            .call(toolTip)
+            .transition()
+            .attr('cx', function(d) { return xScale(d[xMetric]); })
+            .attr('cy', function(d) { return yScale(d[yMetric]); })
+            ;
+
+        dot.exit().remove();
+
+    }   
 
     function metrics(selection) {
 
@@ -132,43 +211,13 @@ const d3scatter = (function () {
             }
 
             //update axis labels
-            svg.select('.scatter-x-axis').text(xLabel);
-            svg.select('.scatter-y-axis').text(yLabel);
+            svg.select('.scatter-x-label').text(xLabel);
+            svg.select('.scatter-y-label').text(yLabel);
 
             update();
         });
 
     }
-
-    function update(data) {
-
-        nodes = data.nodesByYear;
-
-        //xScale.domain([1, d3.max(nodes, function(n) { return n[xMetric]; })]);
-        //yScale.domain([1, d3.max(nodes, function(n) { return n[yMetric]; })]);
-
-        xScale.domain(d3.extent(nodes, function(n) { return n[xMetric]; }));
-        yScale.domain(d3.extent(nodes, function(n) { return n[yMetric]; }));
-
-
-		var dot = svg.selectAll('.dot')
-			.data(nodes);
-
-		dot.enter().append('circle')
-			.attr('class', 'dot')
-            .attr('r', 4)
-            .attr('fill', function(d, i) { return d3donut.googleColors(i); })
-            .attr('cy', height)  // set y here for smooth transition
-            .merge(dot)
-            .call(toolTip)
-            .transition()
-            .attr('cx', function(d) { return xScale(d[xMetric]); })
-            .attr('cy', function(d) { return yScale(d[yMetric]); })
-            ;
-
-        dot.exit().remove();
-
-    }   
 
     function toolTip(selection) {
 
