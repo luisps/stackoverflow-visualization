@@ -56,6 +56,10 @@ const d3scatter = (function () {
 
         // Event listeners
         d3sidebar.$dispatcher.on('load.scatter', (data) => {
+            //scatter plot is hidden on local view
+            if (data.node != null)
+                return;
+
             nodes = data.nodesByYear;
             update();
         });

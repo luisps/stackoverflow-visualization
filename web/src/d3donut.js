@@ -3,6 +3,7 @@ const d3donut = (function () {
     // Variables
     let selectedTag = null,
         links = null,
+        children = null,
         widthDonut = null,
         widthLegend = null,
         height = null,
@@ -29,12 +30,15 @@ const d3donut = (function () {
         googleColors
     };
 
-    function googleColors(n) {
-        return colors_g[n % colors_g.length];
+    function googleColors(i) {
+        return colors_g[i % colors_g.length];
     }
 
-    function colorScale(n) {
-        return (n >= maxTagsDonut) ? colorOthers : googleColors(n);
+    function colorScale(d, i) {
+        if (d.tag == 'None' || i >= maxTagsDonut)
+            return colorOthers;
+        else
+            return googleColors(i);
     }
 
     function init() {
@@ -64,7 +68,7 @@ const d3donut = (function () {
         legendRelated = res.legend;
 
         //define color scales here
-        colorScaleChildren = googleColors;
+        colorScaleChildren = colorScale;
         colorScaleRelated = colorScale;
 
 		pie = d3.pie()
@@ -83,6 +87,8 @@ const d3donut = (function () {
 
             selectedTag = data.node.$tag;
             links = data.node.$links;
+            children = Object.values(data.node.$children);
+            console.log(children);
             updateChildren();
             updateRelated();
         });
@@ -93,22 +99,14 @@ const d3donut = (function () {
         if (selectedTag == null)
             return;
 
-        //very similar code to related
-        //here instead we don't do aggregating into others
         donutData = []
         var total = 0;
-        for (let d of links) {
-            var tag = (d.tag1 == selectedTag) ? d.tag2 : d.tag1;
-            donutData.push({tag: tag, value: d.value});
-            total += d.value;
+        for (let d of children) {
+            donutData.push({tag: d.$tag, value: d.$radius});
+            total += d.$radius;
         }
 
-        //must sort array first
-        donutData.sort(function(a, b) { return b.value - a.value; });
-
-        //convert values to probabilities
-        for (let d of donutData)
-            d.value = d.value / total * 100;
+        donutData = processData(donutData, total);
 
         drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
         d3.selectAll('#sub-communities .slice').call(toolTip, svgChildren, colorScaleChildren);
@@ -127,12 +125,28 @@ const d3donut = (function () {
             total += d.value;
         }
 
+        donutData = processData(donutData, total);
+
+        drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
+        d3.selectAll('#related-communities .slice').call(toolTip, svgRelated, colorScaleRelated);
+
+    }
+
+    function processData(donutData, total) {
+
+        //handle case when there is no data
+        if (donutData.length == 0) {
+            donutData.push({tag: 'None', value: 100});
+            return donutData;
+        }
+
         //must sort array first
         donutData.sort(function(a, b) { return b.value - a.value; });
 
         //aggregate extra tags into others
         donutData = donutData.slice(0, maxTagsDonut);
 
+        //calculate total count for tags that will be included
         var includingTagsTotal = donutData.reduce(function(total, elem) {
             return total + elem.value;
         }, 0);
@@ -145,8 +159,7 @@ const d3donut = (function () {
         for (let d of donutData)
             d.value = d.value / total * 100;
 
-        drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
-        d3.selectAll('#related-communities .slice').call(toolTip, svgRelated, colorScaleRelated);
+        return donutData;
 
     }
 
@@ -183,7 +196,7 @@ const d3donut = (function () {
 		    .attr('class', 'slice')
             .merge(svgData)
 			.attr('d', arc)
-			.style('fill', function(d, i) { return colorScale(i); })
+			.style('fill', function(d, i) { return colorScale(d.data, i); })
             ;
 
         svgData.exit().remove();
@@ -217,7 +230,7 @@ const d3donut = (function () {
             .attr('width', '0.8em')
             .attr('height', '0.8em')
             .attr('y', '-0.7em')  // 0.5em to get text's half height and 0.2 em for initial vertical padding
-			.style('fill', function(d, i) { return colorScale(i); })
+			.style('fill', function(d, i) { return colorScale(d, i); })
             ;
 
         //update on data change
@@ -225,7 +238,7 @@ const d3donut = (function () {
             .text(function(d) { return d.tag; });
 
         svgData.select('rect')
-			.style('fill', function(d, i) { return colorScale(i); })
+			.style('fill', function(d, i) { return colorScale(d, i); })
 
         svgData.exit().remove();
 
@@ -246,7 +259,7 @@ const d3donut = (function () {
             svg.append('circle')
                 .attr('class', 'toolCircle')
                 .attr('r', innerRadius * 0.95)
-                .style('fill', colorScale(i))
+                .style('fill', colorScale(d.data, i))
                 .style('fill-opacity', 0.35);
 
         });

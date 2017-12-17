@@ -41,8 +41,6 @@ const d3sidebar = (function () {
             d3sidebar.select('#communities').style('display', 'none');
             d3sidebar.select('#scatter-container').style('display', 'flex');
 
-            // TODO: enable scatter, disable pie charts
-
             d3sidebar.select('.icon').style('background-image', "");
             d3sidebar.select('.tag').text('es.stackoverflow.com');
 

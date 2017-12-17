@@ -74,17 +74,33 @@
 #communities {
 	/*
 	make sure div isnt't shown when app starts
-	setting display:none here wouldn't work since children elements
-	don't expect empty parent containers
+	setting display:none here wouldn't work since
+	the children elements don't expect empty
+	parent containers
 	*/
 	visibility: hidden;
+}
+
+#scatter-container > div, #communities > div {
+	display: flex;
+	flex-direction: column;
+    height: 12rem;
 }
 
 #sub-communities,
 #related-communities,
 #scatter {
 	position: relative;
-    height: 10rem;
+	flex: 1;
+}
+
+.scatter-x-axis path, .scatter-y-axis path {
+	stroke: gray;
+}
+
+.scatter-x-label, .scatter-y-label {
+    fill: #555;
+	font-size: 1.0rem;
 }
 
 .donut-chart {
@@ -144,15 +160,6 @@
     border-width: 5px;
     border-style: solid;
     border-color: #555 transparent transparent transparent;
-}
-
-.scatter-x-axis path, .scatter-y-axis path {
-	stroke: gray;
-}
-
-.scatter-x-label, .scatter-y-label {
-    fill: #555;
-	font-size: 1.0rem;
 }
 
 .metrics {
