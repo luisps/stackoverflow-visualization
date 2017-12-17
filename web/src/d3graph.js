@@ -39,7 +39,6 @@ const d3graph = (function () {
     ;
 
     return {
-        $d3select: () => d3graph,
         $dispatcher,
         init
     };

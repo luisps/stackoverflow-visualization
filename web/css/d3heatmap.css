@@ -13,12 +13,21 @@
 
 #heatmap .axis-month {
     font-size: 0.95rem;
-    transform: translate(calc(100% / 13 / 2), 0);
 }
 #heatmap .axis-week {
     font-size: 0.6rem;
-    transform: translate(0, calc(100% - 1.2rem));
 }
-#heatmap .chart {
-    transform: translate(0, 1.7rem);
+
+/* Tooltip */
+#heatmap .tooltip tbody tr td:nth-of-type(1) { width: 40%; }
+#heatmap .tooltip tbody tr td:nth-of-type(2) { width: 60%; }
+
+#heatmap .tooltip > .day,
+#heatmap .tooltip > .week {
+    width: 180px;
 }
+
+#heatmap .tooltip > .day  { float: right; }
+#heatmap .tooltip > .week { float: left; }
+#heatmap .tooltip.is-inverted > .day   { float: left !important; }
+#heatmap .tooltip.is-inverted > .week  { float: right !important; }

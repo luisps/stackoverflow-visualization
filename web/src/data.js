@@ -238,11 +238,13 @@ const data = (function () {
         (year === null ? Object.keys(nodes) : [year]).forEach((year) => {
             Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
                 Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
-                    let week = util.getWeek(year, month, day);
+                    let date = new Date(year, month - 1, day);
+                        date.setDate(date.getDate() - date.getDay());
+                    let week = util.getWeek(date);
 
                     if (resultByWeek === null || resultWeek !== week) {
                         resultWeek = week;
-                        resultByWeek = _nodesNew(new Date(year, month - 1, day), tag, 0, 0, 0, 0, 0, 0);
+                        resultByWeek = _nodesNew(date, tag, 0, 0, 0, 0, 0, 0);
                         result.push(resultByWeek);
                     }
 
@@ -300,6 +302,7 @@ const data = (function () {
         nodeResult.$radius += node.$radius;
         nodeResult.answercount += node.answercount;
         nodeResult.commentcount += node.commentcount;
+        nodeResult.questioncount += node.questioncount;
         nodeResult.upvotes += node.upvotes;
         nodeResult.downvotes += node.downvotes;
         nodeResult.offensivevotes += node.offensivevotes;

@@ -4,14 +4,26 @@ const util = (function () {
         // Thanks to https://stackoverflow.com/questions/36532307/rem-px-in-javascript
         getRem: () =>  parseFloat(getComputedStyle(document.documentElement).fontSize),
 
-        // Thanks to https://gist.github.com/dblock/1081513
-        getWeek: (year, month, day) => {
-            let target = new Date(year, month - 1, day),
-                dayNr = (target.getDay() + 6) % 7,
-                jan4    = new Date(target.getFullYear(), 0, 4);
+        // Thanks to https://stackoverflow.com/a/6117889
+        getWeek: (d) => {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            let yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        },
 
-            target.setDate(target.getDate() - dayNr + 3);
-            return 1 + Math.ceil((target - jan4) / 86400000 / 7);
+        getWeeksByYear: (year) => {
+            let dateStart = new Date(year, 0, 1),
+                dateEnd = new Date(year,  11, 31);
+
+            dateStart.setDate(dateStart.getDate() - dateStart.getDay());
+            dateEnd.setDate(dateEnd.getDate() + (6 - dateEnd.getDay()));
+
+            let res = [];
+            for (; dateStart <= dateEnd; dateStart.setDate(dateStart.getDate() + 7))
+                res.push(new Date(dateStart));
+
+            return res;
         }
     }
 

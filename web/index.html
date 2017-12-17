@@ -68,15 +68,64 @@
         </div>
     </header>
     <main class="mdl-layout__content" style="overflow: hidden;">
+        <!-- Sidebar -->
         <div id="sidebar" class="mdl-card mdl-shadow--2dp">
+            <!-- Top -->
             <div class="icon"></div>
             <div class="tag">Global</div>
+            <!-- HEATMAP :: Community Activity -->
             <div class="title">Community Activity</div>
             <svg id="heatmap">
                 <g class="axis-month"></g>
                 <g class="axis-week"></g>
                 <g class="chart"></g>
+                <rect class="chart-area" fill="red" opacity="0"></rect>
+                <foreignObject class="tooltip" width="361" height="100">
+                    <table class="day">
+                        <thead>
+                            <tr>
+                                <td colspan="2">21st December</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Answers</td>
+                                <td class="answers">562</td>
+                            </tr>
+                            <tr>
+                                <td>Comments</td>
+                                <td class="comments">855</td>
+                            </tr>
+                            <tr>
+                                <td>Questions</td>
+                                <td class="questions">64</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="week">
+                        <thead>
+                        <tr>
+                            <td colspan="2">Week 32</td>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Answers</td>
+                            <td class="answers">5624</td>
+                        </tr>
+                        <tr>
+                            <td>Comments</td>
+                            <td class="comments">8556</td>
+                        </tr>
+                        <tr>
+                            <td>Questions</td>
+                            <td class="questions">648</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </foreignObject>
             </svg>
+            <!-- Community Health -->
             <div class="title">Community Health</div>
             <div class="label">Upvotes/Downvotes</div>
             <div id="upvotes-downvotes">
