@@ -28,20 +28,21 @@ const d3bubble = (function () {
     }
 
     function load(selected) {
-        console.warn('TODO: fix d3bubble');
         return;
 
-        let isVisible = selected && Object.keys(selected.children).length > 0;
+        let isVisible = selected && Object.keys(selected.$children).length > 0;
         d3bubble.attr('display', isVisible ? 'initial' : 'none');
         if (!isVisible) return;
 
         console.time('d3bubble.update');
 
+        console.log(selected);
+        console.log(selected.$children);
         $node = this;
         let nodeBB = _nodeBB($node);
 
-        let root = d3.hierarchy({ name: selected.tag, children: Object.values(selected.children) })
-            .sum((n) => n.radius)
+        let root = d3.hierarchy({ name: selected.$tag, children: Object.values(selected.$children) })
+            .sum((n) => n.$radius)
             .sort((a ,b) => b.value - a.value)
         ;
 
@@ -49,6 +50,7 @@ const d3bubble = (function () {
             .padding(1)
             .size([nodeBB.width - PADDING * 2, nodeBB.height - PADDING * 2]);
         let nodes = pack(root).descendants();
+        console.log(nodes);
 
         // Update circles
         let circles = d3bubble.selectAll('circle').data(nodes);
@@ -71,7 +73,7 @@ const d3bubble = (function () {
         let labels = d3bubble.selectAll('text').data(nodes);
         labels.exit().remove();
         labels.enter().append('text')
-            .text((n) => n.data.tag)
+            .text((n) => n.data.$tag)
             .attr('font-size', 4)
             .attr('text-anchor', 'middle')
             .attr('x', (n) => n.x)
@@ -79,7 +81,7 @@ const d3bubble = (function () {
             .attr('visibility', LABEL_VISIBILITY)
         ;
         labels
-            .text((n) => n.data.tag)
+            .text((n) => n.data.$tag)
             .attr('x', (n) => n.x)
             .attr('y', (n) => n.y)
             .attr('visibility', LABEL_VISIBILITY);
