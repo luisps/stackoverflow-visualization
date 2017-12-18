@@ -8,12 +8,12 @@ const data = (function () {
 
     // Variables
     let $dispatcher = d3.dispatch('load', 'icons', 'update'),
-        clusters,
-        icons,
-        links,
-        nodes,
-        dateMin,
-        dateMax
+        $clusters,
+        $icons,
+        $links,
+        $nodes,
+        $dateMin,
+        $dateMax
     ;
 
     return {
@@ -29,7 +29,7 @@ const data = (function () {
             iconsLoad(data);
             console.timeEnd('data.load.icons');
 
-            $dispatcher.call('icons', this, { icons });
+            $dispatcher.call('icons', this, { icons: $icons });
             d3.csv(PATH_CLUSTERS.replace('{region}', region), (data) => {
                 console.time('data.load.$clusters');
                 clustersLoad(data);
@@ -45,7 +45,7 @@ const data = (function () {
                         linksLoad(data);
                         console.timeEnd('data.load.skills');
 
-                        $dispatcher.call('load', this, { dateMin, dateMax, nodesByWeek: nodesByTagByWeek(null, null) });
+                        $dispatcher.call('load', this, { dateMin: $dateMin, dateMax: $dateMax, nodesByWeek: nodesByTagByWeek(null, null) });
                     });
                 });
             });
@@ -84,27 +84,27 @@ const data = (function () {
     }
 
     function clustersLoad(data) {
-        clusters = {};
-        data.forEach((row) => clusters[row.tag] = row.cluster);
+        $clusters = {};
+        data.forEach((row) => $clusters[row.tag] = row.cluster);
     }
 
     function iconsLoad(data) {
-        icons = {};
-        data.forEach((row) => icons[row.tag] = {
+        $icons = {};
+        data.forEach((row) => $icons[row.tag] = {
             id: 'icon_' + row.icon,
             url: 'img/icons/' + row.icon + '.png'
         });
     }
 
     function linksLoad(data) {
-        links = {};
+        $links = {};
         data.forEach((row) => {
             let year = +row['year'];
 
             let tag1 = row['tag1'],
                 tag2 = row['tag2'],
-                cluster1 = clusters[tag1],
-                cluster2 = clusters[tag2];
+                cluster1 = $clusters[tag1],
+                cluster2 = $clusters[tag2];
 
             // Remove links between children from different parents
             // Remove links between siblings
@@ -119,12 +119,12 @@ const data = (function () {
                 +row['rank2']
             );
 
-            let linksByYear = links[year] = links[year] || [];
+            let linksByYear = $links[year] = $links[year] || [];
                 linksByYear.push(link);
         });
     }
     function linksByYear(year) {
-        return links[year];
+        return $links[year];
     }
 
     function _linksNew(tag1, tag2, value, rank1, rank2) {
@@ -139,7 +139,7 @@ const data = (function () {
     }
 
     function nodesLoad(data) {
-        nodes = {};
+        $nodes = {};
         data.forEach((row) => {
             let year = +row['year'],
                 month = +row['month'],
@@ -156,7 +156,7 @@ const data = (function () {
                 +row['offensivevotes']
             );
 
-            let nodesByYear = nodes[year] = nodes[year] || {};
+            let nodesByYear = $nodes[year] = $nodes[year] || {};
             let nodesByMonthAndYear = nodesByYear[month] = nodesByYear[month] || {};
             let nodesByDayAndMonthAndYear = nodesByMonthAndYear[day] = nodesByMonthAndYear[day] || {};
             let clusterNode = nodesByDayAndMonthAndYear[node.$cluster] = nodesByDayAndMonthAndYear[node.$cluster] || {
@@ -173,25 +173,25 @@ const data = (function () {
         });
 
         // Calculate dateMin and dateMax
-        let years = Object.keys(nodes).sort(),
+        let years = Object.keys($nodes).sort(),
             yearStart = +years[0],
             yearEnd = +years.pop(),
-            monthStart = +Object.keys(nodes[yearStart])[0],
-            monthEnd = +Object.keys(nodes[yearEnd]).pop(),
-            dayStart = +Object.keys(nodes[yearStart][monthStart])[0],
-            dayEnd = +Object.keys(nodes[yearEnd][monthEnd]).pop()
+            monthStart = +Object.keys($nodes[yearStart])[0],
+            monthEnd = +Object.keys($nodes[yearEnd]).pop(),
+            dayStart = +Object.keys($nodes[yearStart][monthStart])[0],
+            dayEnd = +Object.keys($nodes[yearEnd][monthEnd]).pop()
         ;
 
-        dateMin = new Date(yearStart, monthStart - 1, dayStart);
-        dateMax = new Date(yearEnd, monthEnd - 1, dayEnd);
+        $dateMin = new Date(yearStart, monthStart - 1, dayStart);
+        $dateMax = new Date(yearEnd, monthEnd - 1, dayEnd);
 
         // Make sure there are no holes
-        for (let date = new Date(dateMin); date <= dateMax; date.setDate(date.getDate() + 1)) {
+        for (let date = new Date($dateMin); date <= $dateMax; date.setDate(date.getDate() + 1)) {
             let year = date.getFullYear(),
                 month = date.getMonth() + 1,
                 day = date.getDate();
 
-            let nodesByYear = nodes[year] = nodes[year] || {},
+            let nodesByYear = $nodes[year] = $nodes[year] || {},
                 nodesByMonth = nodesByYear[month] = nodesByYear[month] || {},
                 nodesByDay = nodesByMonth[day] = nodesByMonth[day] || {};
 
@@ -209,8 +209,8 @@ const data = (function () {
         let result = [],
             resultByDay = null;
 
-        (year === null ? Object.keys(nodes) : [year]).forEach((year) => {
-            Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
+        (year === null ? Object.keys($nodes) : [year]).forEach((year) => {
+            Object.keys(nodesByMonth = $nodes[year]).forEach((month) => {
                 Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
                     resultByDay = _nodesNew(new Date(year, month - 1, day), tag, 0, 0, 0, 0, 0, 0);
                     result.push(resultByDay);
@@ -235,8 +235,8 @@ const data = (function () {
             resultByWeek = null,
             resultWeek = null;
 
-        (year === null ? Object.keys(nodes) : [year]).forEach((year) => {
-            Object.keys(nodesByMonth = nodes[year]).forEach((month) => {
+        (year === null ? Object.keys($nodes) : [year]).forEach((year) => {
+            Object.keys(nodesByMonth = $nodes[year]).forEach((month) => {
                 Object.keys(nodesByDay = nodesByMonth[month]).forEach((day) => {
                     let date = new Date(year, month - 1, day);
                         date.setDate(date.getDate() - date.getDay());
@@ -266,7 +266,7 @@ const data = (function () {
         let nodesByYear, nodesByMonth, nodesByDay;
         let result = {};
 
-        Object.keys(nodesByYear = nodes[year]).forEach((month) => {
+        Object.keys(nodesByYear = $nodes[year]).forEach((month) => {
             Object.keys(nodesByMonth = nodesByYear[month]).forEach((day) => {
                 Object.keys(nodesByDay = nodesByMonth[day]).forEach((tag) => {
                     let node = nodesByDay[tag],
@@ -285,9 +285,9 @@ const data = (function () {
         return {
             $date: date,
             $id: tag ? '$' + tag : null,
-            $icon: icons[tag] ? icons[tag] : null,
+            $icon: $icons[tag] ? $icons[tag] : null,
             $children: null,
-            $cluster: clusters[tag] ? clusters[tag] : null,
+            $cluster: $clusters[tag] ? $clusters[tag] : null,
             $radius: answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes,
             $tag: tag ? tag : null,
             answercount,
@@ -309,7 +309,7 @@ const data = (function () {
 
         // Sum children
         if (node.$children !== null) {
-            nodeResult.$children = {};
+            nodeResult.$children = nodeResult.$children || {};
 
             Object.keys(node.$children).forEach((tag) => {
                 let child = node.$children[tag],
