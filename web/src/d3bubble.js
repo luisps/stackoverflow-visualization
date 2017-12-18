@@ -2,15 +2,21 @@ const d3bubble = (function () {
 
     // Constants
     const PADDING = 0;
+    const FADE_DURATION= 400;
+    const SHOW_DURATION = 400;
 
     // Private Variables
-    let $node,
+    let $dispatcher = d3.dispatch('setRecursion'),
+        $node,
+        labels,
+        recursion,
         d3bubble
     ;
 
     return {
         init,
-        moveTo
+        moveTo,
+        $dispatcher
     };
 
     function init() {
@@ -20,6 +26,11 @@ const d3bubble = (function () {
         // Event listeners
         d3graph.$dispatcher.on('click.bubble', load);
         d3graph.$dispatcher.on('tick.bubble', tick);
+
+        $dispatcher.on('setRecursion', (eventName, flag) => {
+            recursion[eventName] = flag;
+        });
+
     }
 
     function load(selected) {
@@ -57,7 +68,7 @@ const d3bubble = (function () {
         ;
 
         // Update labels
-        let labels = d3bubble.selectAll('text').data(nodes);
+        labels = d3bubble.selectAll('text').data(nodes);
         labels.exit().remove();
         labels.enter().append('text')
             .attr('class', function(n, i) { return (n.height === 1) ? '' : 'bubble-label'; })
@@ -69,7 +80,12 @@ const d3bubble = (function () {
             .attr('y', (n) => n.y)
         ;
 
-        d3bubble.selectAll('.bubble-circle').call(mouseEvents);
+        //handle mouse events
+        circles = d3bubble.selectAll('.bubble-circle');
+        labels = d3bubble.selectAll('.bubble-label');
+
+        recursion = {'mouseenter': false, 'mouseout': false};
+        circles.call(mouseEvents)
 
         // Apply offset to stay on top of the selected node
         _moveTo(nodeBB);
@@ -78,24 +94,28 @@ const d3bubble = (function () {
 
     function mouseEvents(circles) {
 
-        var labels = d3bubble.selectAll('.bubble-label');
-        var fadeDuration = 400;
-        var showDuration = 400;
+        circles.on('mouseenter', function(n, i) {
 
-        circles.on('mouseover', function(n, i) {
+            if (recursion.mouseenter) {
+                recursion.mouseenter = false;
+                d3donut.$dispatcher.call('setRecursion', this,
+                    'mouseenter', false);
+
+                return;
+            }
 
             //all circles
             circles
                 .interrupt('circle-show')
                 .transition('circle-fade')
-                .duration(fadeDuration)
+                .duration(FADE_DURATION)
                 .attr('opacity', 0.6)
                 ;
 
             labels
                 .interrupt('label-show')
                 .transition('label-fade')
-                .duration(fadeDuration)
+                .duration(FADE_DURATION)
                 .attr('opacity', 0)
                 ;
 
@@ -111,24 +131,41 @@ const d3bubble = (function () {
                 .interrupt('label-fade')
                 ;
 
+            //donut chart interaction
+            recursion.mouseenter = true;
+            d3.select('#sub-communities .slice:nth-of-type('+(i+1)+')').dispatch('mouseenter');
+
+
         });
 
-        circles.on('mouseout', function () {
+        circles.on('mouseout', function (n, i) {
+
+            if (recursion.mouseout) {
+                recursion.mouseout = false;
+                d3donut.$dispatcher.call('setRecursion', this,
+                    'mouseout', false);
+
+                return;
+            }
 
             //all circles
             circles
                 .interrupt('circle-fade')
                 .transition('circle-show')
-                .duration(showDuration)
+                .duration(SHOW_DURATION)
                 .attr('opacity', 1)
                 ;
 
             labels
                 .interrupt('label-fade')
                 .transition('label-show')
-                .duration(showDuration)
+                .duration(SHOW_DURATION)
                 .attr('opacity', 1)
                 ;
+
+            //donut chart interaction
+            recursion.mouseout = true;
+            d3.select('#sub-communities .slice:nth-of-type('+(i+1)+')').dispatch('mouseout');
 
         });
         

@@ -1,7 +1,8 @@
 const d3donut = (function () {
 
     // Variables
-    let selectedTag = null,
+    let $dispatcher = d3.dispatch('setRecursion'),
+        selectedTag = null,
         links = null,
         children = null,
         widthDonut = null,
@@ -15,6 +16,7 @@ const d3donut = (function () {
         colorScaleRelated = null,
         innerRadius = null,
         outerRadius = null,
+        recursion = null,
         pie = null,
         arc = null,
         donutData = null,
@@ -27,7 +29,8 @@ const d3donut = (function () {
 
     return {
         init,
-        googleColors
+        googleColors,
+        $dispatcher
     };
 
     function googleColors(i) {
@@ -88,9 +91,12 @@ const d3donut = (function () {
             selectedTag = data.node.$tag;
             links = data.node.$links;
             children = Object.values(data.node.$children);
-            console.log(children);
             updateChildren();
             updateRelated();
+        });
+
+        $dispatcher.on('setRecursion', (eventName, flag) => {
+            recursion[eventName] = flag;
         });
 
     }
@@ -109,7 +115,10 @@ const d3donut = (function () {
         donutData = processData(donutData, total);
 
         drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
-        d3.selectAll('#sub-communities .slice').call(toolTip, svgChildren, colorScaleChildren);
+
+        var slices = d3.selectAll('#sub-communities .slice');
+        slices.call(toolTip, svgChildren, colorScaleChildren);
+        slices.call(interactBubble);
 
     }
 
@@ -128,7 +137,9 @@ const d3donut = (function () {
         donutData = processData(donutData, total);
 
         drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
-        d3.selectAll('#related-communities .slice').call(toolTip, svgRelated, colorScaleRelated);
+
+        var slices = d3.selectAll('#related-communities .slice');
+        slices.call(toolTip, svgRelated, colorScaleRelated);
 
     }
 
@@ -244,6 +255,56 @@ const d3donut = (function () {
 
     }
 
+    function interactBubble(selection) {
+
+        //the logic is that when an event on the bubble chart
+        //occurs we call the corresponding event on the donut
+        //chart and vice-versa, due to this our application
+        //must properly deal with event recursion
+        recursion = {'mouseenter': false, 'mouseout': false};
+
+        //use a decorator to add extra behaviour to sub communities
+        var enterCallback = selection.on('mouseenter');
+        selection.on('mouseenter', function(d, i) {
+
+            if (recursion.mouseenter) {
+                recursion.mouseenter = false;
+                d3bubble.$dispatcher.call('setRecursion', this,
+                    'mouseenter', false);
+
+                return;
+            }
+
+            //call decorated callback
+            enterCallback(d, i);
+
+            //call "mouseenter" event on bubble chart
+            recursion.mouseenter = true;
+            d3.select('#bubble .bubble-circle:nth-of-type('+(i+2)+')').dispatch('mouseenter');
+
+        });
+
+        var outCallback = selection.on('mouseout');
+        selection.on('mouseout', function(d, i) {
+
+            if (recursion.mouseout) {
+                recursion.mouseout = false;
+                d3bubble.$dispatcher.call('setRecursion', this,
+                    'mouseout', false);
+
+                return;
+            }
+
+            //call decorated callback
+            outCallback(d, i);
+
+            //call "mouseout" event on bubble chart
+            recursion.mouseout = true;
+            d3.select('#bubble .bubble-circle:nth-of-type('+(i+2)+')').dispatch('mouseout');
+
+        });
+
+    }
 
     function toolTip(selection, svg, colorScale) {
 
@@ -264,8 +325,9 @@ const d3donut = (function () {
 
         });
 
-        selection.on('mouseout', function () {
+        selection.on('mouseout', function (d, i) {
             d3.selectAll('.toolCircle').remove();
+
         });
 
     }
