@@ -1,0 +1,27 @@
+#votes .upvotes {
+    fill: #00E676;
+}
+#votes .downvotes {
+    fill: #FF3D00;
+}
+
+/* Tooltip */
+#votes .tooltip tbody tr td:nth-of-type(1) { width: 40%; }
+#votes .tooltip tbody tr td:nth-of-type(2) { width: 60%; }
+
+#votes .tooltip .downvotes:after,
+#votes .tooltip .upvotes:after {
+    position: absolute;
+    font-family: 'Material Icons', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+#votes .tooltip .downvotes:after {
+    content: '\E5C5';
+    color: #FF3D00;
+}
+#votes .tooltip .upvotes:after {
+    content: '\E5C7';
+    color: #00E676;
+}

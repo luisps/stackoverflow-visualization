@@ -1,172 +1,136 @@
 const d3votes = (function () {
 
-    const paddingOuter = 4;
-    const paddingInner = 1;
+    // Constants
+    const FORMAT_WEEK = d3.timeFormat('%V');
 
     // Variables
-    let nodes = null,
-        width = null,
-        height = null,
-        svg = null,
-        upvoteScale = null,
-        downvoteScale = null,
-        tooltip = null
-        ;
+    let $dispatcher = d3.dispatch('tooltip'),
+        d3svg,
+        d3svgDimensions,
+        d3tooltip,
+        d3tooltipDimensions,
+        $nodes,
+        $nodeWidth,
+        yScaleUpvote,
+        yScaleDownvote
+    ;
 
     return {
+        $dispatcher,
         init
     };
 
     function init() {
+        d3svg = d3.select('#votes');
+        d3svgDimensions = d3svg.node().getBoundingClientRect();
 
-        container = document.getElementById('upvotes-downvotes');
-        width = container.offsetWidth;
-        height = container.offsetHeight;
-
-        //create scales
-        upvoteScale = d3.scaleLinear()
-                .range([0, height/2]);
-
-        downvoteScale = d3.scaleLinear()
-                .range([0, height/2]);
-
-        svg = d3.select(container).append('svg')
-            .attr('width', width)
-            .attr('height', height)
-            .append('g')
-            ;
-
-        //append a line representing the axis
-        svg
-            .append('line')
-            .attr('x1', paddingOuter)
-            .attr('x2', width-paddingOuter)
-            .attr('y1', height/2)
-            .attr('y2', height/2)
+        // Initialize axis
+        d3svg.append('line')
+            .attr('x1', 0)
+            .attr('x2', d3svgDimensions.width)
+            .attr('y1', d3svgDimensions.height / 2)
+            .attr('y2', d3svgDimensions.height / 2)
         ;
 
-        tooltip = d3.select(container).select('.tooltip');
+        // Initialize scales
+        yScaleUpvote = d3.scaleLinear().range([0, d3svgDimensions.height / 2]);
+        yScaleDownvote = d3.scaleLinear().range([0, d3svgDimensions.height / 2]);
+
+        // Initialize tooltip
+        d3tooltip = d3svg.select('.tooltip').attr('width', util.getRem() * (10));
+        d3tooltipDimensions = d3tooltip.node().getBoundingClientRect();
 
         // Event listeners
-        d3sidebar.$dispatcher.on('load.votes', (data) => {
-            nodes = data.nodesByWeek;
-            update();
-        });
-
+        d3heatmap.$dispatcher.on('tooltip.votes', onTooltip);
+        d3sidebar.$dispatcher.on('load.votes', load);
+        d3svg.select('.area')
+            .on('mousemove', onMouseEvent)
+            .on('mouseover', onMouseEvent)
+            .on('mouseout', onMouseEvent);
     }
 
-    function update() {
+    function load(data) {
+        console.time('votes.load');
+        $nodes = data.nodesByWeek;
+        $nodeWidth = d3svgDimensions.width / data.weeks.length;
 
-        //we use the same domain for upvotes and downvotes
-        var maxVotes = d3.max(nodes, function(d) { return Math.max(d.upvotes, d.downvotes); });
+        // Update scales
+        let max = d3.max($nodes, (n) => n.upvotes > n.downvotes ? n.upvotes : n.downvotes);
+        yScaleUpvote.domain([0, max]);
+        yScaleDownvote.domain([0, max]);
 
-        //calculate bandwidth - the size of each bar
-        var bandwidth = (width - 2 * paddingOuter) / nodes.length - paddingInner;
+        let dateStart = new Date(data.nodesByDay[0].$date.getFullYear(), 0, 1),
+            indexOffset = d3.timeWeek.count(dateStart, $nodes[0].$date);
 
-        //simple hack to make the upvotes' bars have 0 height when all votes are 0
-        var initialDomain = (maxVotes == 0) ? -1 : 0;
+        // Update chart
+        let upvotes = d3svg.select('.upvotes').selectAll('rect').data($nodes);
+        upvotes.exit().remove();        // Items to be removed
+        upvotes.enter().append('rect')  // Items to be added
+            .attr('width', $nodeWidth - 1)
+            .merge(upvotes)             // Items to be added + updated
+            .attr('x', (d, i) => (i + indexOffset) * $nodeWidth)
+            .attr('y', (n) => d3svgDimensions.height / 2 - yScaleUpvote(n.upvotes))
+            .attr('height', (n) => yScaleUpvote(n.upvotes));
 
-        upvoteScale.domain([initialDomain, maxVotes]);
-        downvoteScale.domain([0, maxVotes]);
+        let downvotes = d3svg.select('.downvotes').selectAll('rect').data($nodes);
+        downvotes.exit().remove();        // Items to be removed
+        downvotes.enter().append('rect')  // Items to be added
+            .attr('width', $nodeWidth - 1)
+            .merge(downvotes)           // Items to be added + updated
+            .attr('x', (d, i) => (i + indexOffset) * $nodeWidth)
+            .attr('y', d3svgDimensions.height / 2)
+            .attr('height', (n) => yScaleDownvote(n.downvotes));
 
-        //selection for upvotes
-        var bars = svg.selectAll('.upvotes-bar')
-                   .data(nodes);
-
-        bars
-            .enter().append('rect')
-            .attr('class', 'upvotes-bar')
-            .attr('x', function(d, i) { return paddingOuter + i * (bandwidth + paddingInner); })
-            .attr('width', bandwidth)
-            .attr('y', height/2)  // set y here before merge to have a smooth transition for entering bars
-            .merge(bars)
-            .transition()
-            .attr('y', function(d) { return upvoteScale(d.upvotes); })
-            .attr('height', function(d) { return height/2 - upvoteScale(d.upvotes); })
-            ;
-
-        bars.exit().remove();
-
-        //selection for downvotes
-        bars = svg.selectAll('.downvotes-bar')
-                   .data(nodes);
-
-        bars
-            .enter().append('rect')
-            .attr('class', 'downvotes-bar')
-            .attr('x', function(d, i) { return paddingOuter + i * (bandwidth + paddingInner); })
-            .attr('width', bandwidth)
-            .attr('y', height/2)
-            .merge(bars)
-            .transition()
-            .attr('y', function(d) { return height/2; })
-            .attr('height', function(d) { return downvoteScale(d.downvotes); })
-            ;
-
-        bars.exit().remove();
-
-        d3.selectAll('#upvotes-downvotes .upvotes-bar, #upvotes-downvotes .downvotes-bar').call(toolTip);
-
+        console.timeEnd('votes.load');
     }
 
-    function toolTip(selection) {
+    function tooltip(e, x, inverted) {
+        let tooltip = d3tooltip.node();
 
-        //variable bars contains all bars - both upvotes and downvotes
-        //variable numBars is the number of upvote bars(or downvote bars)
-        var bars = selection._groups[0];
-        var numBars = bars.length / 2;
+        // As $nodes doesn't always have the data for the entire year, we need to calculate the week where the data starts on
+        // We achieve that by counting the number of weeks since the beginning of the year
+        let nodeX = Math.floor(x / $nodeWidth),
+            nodeIndex = (nodeX - d3.timeWeek.count(d3.timeYear($nodes[$nodes.length - 1].$date), $nodes[0].$date))/* * 7 + nodeY - $nodes[0].$date.getDay()*/,
+            node = x >= 0/* && y >= 0*/ && (e.type === 'mouseover' || e.type === 'mousemove') ? $nodes[nodeIndex] : null;
 
-        selection.on('mouseenter', function (d, i) {
+        if (node) {
+            x = (nodeX + 1) * $nodeWidth;
 
-            if (i >= numBars)
-                i -= numBars;
+            // Fit inside
+            if (inverted || x + d3tooltipDimensions.width > d3svgDimensions.width) {
+                tooltip.classList.add('is-inverted');
+                x = x - d3tooltipDimensions.width - $nodeWidth;
+            } else {
+                tooltip.classList.remove('is-inverted');
+            }
 
-            //upvotes bar
-            bars[i].style.fill = 'green';
+            // Update data
+            d3tooltip.select('thead td').text('Week ' + FORMAT_WEEK(node.$date));
+            d3tooltip.select('.downvotes').text(node.downvotes);
+            d3tooltip.select('.upvotes').text(node.upvotes);
 
-            //downvotes bar
-            bars[i+numBars].style.fill = '#990000';
-
-            tooltip.transition()
-                .duration(200)
-                .style('opacity', 0.9);
-
-            var bandwidth = bars[i].getAttribute('width'),
-                x = bars[i].x.baseVal.value + bandwidth / 2,
-                y = bars[i].y.baseVal.value - 25;
-
-            tooltip
-                .style('left', x + 'px')
-                .style('top', y + 'px')
-                .html(toolTipHTML(d))
-                .style('transform', 'translate(-50%, -50%)')
-                ;
-
-
-        });
-
-        selection.on('mouseout', function (d, i) {
-
-            if (i >= numBars)
-                i -= numBars;
-
-            //upvotes bar
-            bars[i].style.fill = '#90EE90';
-
-            //downvotes bar
-            bars[i+numBars].style.fill = '#ef3d47';
-
-            tooltip.transition()
-                .duration(400)
-                .style('opacity', 0);
-
-        });
-
+            tooltip.classList.add('is-active');
+            d3tooltip.attr('transform', 'translate(' + x + ',' + (d3svgDimensions.height - d3tooltipDimensions.height) / 2 + ')');
+        } else {
+            tooltip.classList.remove('is-active');
+        }
     }
 
-    function toolTipHTML(d) {
-        return d.upvotes + ' <span style="font-size: 1.6em">&#x1F44D</span> ' + 
-            d.downvotes + ' <span style="font-size: 1.6em">&#x1F44E</span>';
+    function onMouseEvent() {
+        if (!$nodes) return;
+
+        let e = d3.event,
+            x = e.pageX - d3svgDimensions.left;
+
+        tooltip(e, x);
+
+        $dispatcher.call('tooltip', this, { e, x, inverted: d3tooltip.node().classList.contains('is-inverted') });
+    }
+    function onTooltip(data) {
+        let e = data.e,
+            x = data.x;
+
+        tooltip(e, x, data.inverted);
     }
 
 

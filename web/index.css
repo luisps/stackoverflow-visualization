@@ -49,12 +49,12 @@
     text-transform: uppercase;
 }
 
-#upvotes-downvotes {
+#votes {
 	position: relative;
-    height: 4.5rem;
+    height: 5rem;
 }
 
-#upvotes-downvotes line {
+#votes line {
 	stroke: gray;
 	stroke-width: 0.5;
 }
@@ -154,8 +154,9 @@
     transform: scale(1);
 }
 .tooltip table {
+    height: 100%;
     width: 100%;
-    padding: 8px;
+    padding: 8px 0 8px 8px;
     background: rgba(97,97,97,.9);
     border: none;
     border-radius: 2px;
@@ -175,6 +176,9 @@
 .tooltip table tbody {
     font-size: 0.9rem;
     line-height: 0.85rem;
+}
+.tooltip tbody td:nth-of-type(2) {
+    padding-right: 1.5rem;
 }
 
 /*
