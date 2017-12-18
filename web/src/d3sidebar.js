@@ -48,7 +48,8 @@ const d3sidebar = (function () {
                 nodesByDay,
                 nodesByWeek,
                 nodesByYear,
-                node: null
+                node: null,
+                weeks: util.getWeeksByYear(nodesByDay[0].$date.getFullYear())
             });
         } else { // Tag
             d3sidebar.select('#communities').style('display', 'flex');
@@ -60,7 +61,8 @@ const d3sidebar = (function () {
             $dispatcher.call('load', this, {
                 nodesByDay: data.nodesByTagByDay(node.$date.getFullYear(), node.$tag),
                 nodesByWeek: data.nodesByTagByWeek(node.$date.getFullYear(), node.$tag),
-                node: node
+                node: node,
+                weeks: util.getWeeksByYear(node.$date.getFullYear())
             });
         }
 

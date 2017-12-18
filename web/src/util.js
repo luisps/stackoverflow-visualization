@@ -1,8 +1,10 @@
 const util = (function () {
 
+    let rem = null;
+
     return {
         // Thanks to https://stackoverflow.com/questions/36532307/rem-px-in-javascript
-        getRem: () =>  parseFloat(getComputedStyle(document.documentElement).fontSize),
+        getRem: () => rem || (rem = parseFloat(getComputedStyle(document.documentElement).fontSize)),
 
         // Thanks to https://stackoverflow.com/a/6117889
         getWeek: (d) => {

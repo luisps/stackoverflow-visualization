@@ -143,7 +143,7 @@ FROM
         tmp_community
     GROUP BY tag) res
 WHERE
-     activity > 0.001 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community);
+     activity > 0.00005 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community);
 
 CREATE INDEX tags_tag_ids ON tags("tag");
 

@@ -24,7 +24,7 @@
 
 #heatmap .tooltip > .day,
 #heatmap .tooltip > .week {
-    width: 180px;
+    width: calc(50% - 0.5px);
 }
 
 #heatmap .tooltip > .day  { float: right; }

@@ -80,3 +80,24 @@ BEGIN
     END LOOP;
 	
 END $$;
+
+-- Clusters :: Hotfix - fix some specific clusters
+UPDATE clusters SET "cluster"='asp.net' WHERE "cluster"='asp.net-mvc';
+UPDATE clusters SET "cluster"='asp.net' WHERE "cluster"='asp.net-mvc-5';
+UPDATE clusters SET "cluster"='css' WHERE "cluster"='css3';
+UPDATE clusters SET "cluster"='html' WHERE "cluster"='html5';
+UPDATE clusters SET "cluster"='java' WHERE "cluster"='jsf';
+UPDATE clusters SET "cluster"='java' WHERE "cluster"='jsp';
+UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='angularjs';
+UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='angularjs-2.0';
+UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='ionic';
+UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='jquery';
+UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='typescript';
+UPDATE clusters SET "cluster"='laravel' WHERE "cluster"='laravel-5';
+UPDATE clusters SET "cluster"='mysql' WHERE "cluster"='mysqli';
+UPDATE clusters SET "cluster"='php' WHERE "cluster"='codeigniter';
+UPDATE clusters SET "cluster"='python' WHERE "cluster"='python-3.x';
+UPDATE clusters SET "cluster"='visual-studio' WHERE "cluster"='visual-studio-2015';
+UPDATE clusters SET "cluster"='windows' WHERE "cluster"='windows-forms';
+
+SELECT DISTINCT("cluster") FROM clusters ORDER BY "cluster";

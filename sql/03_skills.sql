@@ -130,12 +130,12 @@ CREATE TABLE skills AS
                 GROUP BY tag1, tag2) res
             WHERE 1=1
                 -- Filter irrelevant skills
-                AND res."count" > 0.0001 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2)
+                AND res."count" > 0.00005 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2)
             ) res
         WHERE 1=1
-            -- At most, 12 skills per tag (both ways)
-            AND rank1 <= 12
-            AND rank2 <= 12
+            -- At most, 15 skills per tag (both ways)
+            AND rank1 <= 32
+            AND rank2 <= 32
     )
     SELECT
         *,
