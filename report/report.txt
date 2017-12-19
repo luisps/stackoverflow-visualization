@@ -1,0 +1,91 @@
+
+Here we write the report.
+
+\subsection{Dataset Introduction}
+For our visualization we use data for the popular Q&A website StackOverflow.com.
+StackExchange, the organization behind StackOverflow.com, provides releases of all user contributed data openly available to the community to use.
+The releases are made available under a permissive Creative Commons Share Alike license.
+Additionally the data is routinely updated as new questions and answers are posted every day on the website.
+The releases are provided quarterly(four times per year), the latest release at the time of writing is from December 2017.
+The StackOverflow data can be found on the Internet Archive, therefore to get the data we simply downloaded the files that we deemed interesting for our visualization from the host provider.
+
+Since we got our data from a single source, we did not have to aggregate multiple sources nor perform the data cleaning that usually comes with aggregating multiple sources.
+Overall we found the StackOverflow dataset was already quite "clean" in its raw form which enabled faster prototyping.
+If the dataset had not been provided by StackExchange and the Internet Archive, we would have needed to build a web crawler to fetch the user content and make sure the crawler adhered to StackExchange's ToS policy.
+While it would still be a feasible option, it would have certainly added extra complexity to our application and so by using StackExchange's clean data dumps we managed to cut down on development time.
+With that said, as discussed in subsequent sections our data processing was not exactly straightforward.
+
+\subsection{Pentaho and Scalability}
+
+We originally used Pentaho to build a data pipeline that converted the initial StackOverflow data provided in XML files to an output format that made sense given our defined tasks and our vision of the visualization.
+We tried performing the entirety of our data processing on Pentaho, including filtering operations and the calculation of derived metrics, however we ran into scalability problems.
+Namely we found out that Pentaho was not prepared to deal with the volumes of data we needed in a timely fashion, at one point we left the program running for an afternoon and by the end of it the program was still running and the results were not yet available.
+Our solution to the scalability issue was to move to a full fledged RDBMS and do our data processing there, by doing this we managed to achieve finer grained control on optimizing the total run time and the output files' size.
+To that end we used some simple Python scripts to create the schema and load the XML data to a RDBMS, in our case we used PostgreSQL.
+
+\subsection{Dataset description}
+While we will not give a thorough detailed description of the StackOverflow dataset, our discussion would not be complete without mentioning the core concepts.
+On a high level view, the dataset has posts, users, comments and votes.
+A post is either a question or an answer, which consists of the question or answer's text and associated post metadata.
+For each question, there may be a variable number of answers, the number of answers per question ranges from 0 to unbounded.
+Vital to the understanding of our visualization is that each question is associated with tags, a tag is a label that defines the scope of the question such as "C++" or "D3.js". 
+Whenever a user creates a question on StackOverflow, he can choose a set of tags to label his question so that it becomes easier for other users to find questions based on tag information.
+Since StackOverflow imposes a max limit of tags per question of 5, the number of tags per question ranges from 0 to 5.
+The number of tags per question varies with each question, as some users prefer to provide more labels to add extra information to their questions, for instance a user might tag a question with  3 labels, "JavaScript", "D3.js" and "D3-events".
+One label for the programmming language, another for the specific library and another for a feature or functionality of that library.
+Other users might prefer using fewer tags on their questions and might stick with more generic ones, such as "JavaScript" or "Python".
+Additionally each post(question or answer) has comments and votes associated to it.
+A comment is essentially text and some metadata, while votes can be distinguished as either upvotes or downvotes for each post, each comment or vote has an associated creation date as part of the metadata.
+Each one of the concepts described so far(posts, comments and votes) have an associated user which corresponds to the StackOverflow's user responsible for that activity.
+
+\subsection{Data processing}
+To support the tasks defined for our visualization we have created 3 different datasets, to properly distinguish among them we have named them accordingly to the role they play in the visualization.
+Common to all our computed datasets is that we completely discard all textual information(such as a post or comment's content) and use only the metadata, the metadata of special relevance to our computed datasets are the post tags and creation date.
+We shall describe each dataset here.(refactor)
+
+\subsubsection{Communities}
+In the following sections we shall use the word community as a synonym for tag.
+For the communities dataset, we are interested in calculating metrics for each tag along a time dimension.
+The objective is to measure how each individual tag has varied through time(e.g: Python was more active 8 months ago than 4 months ago) and also how they vary between each other(Python was more active than C++ in 2017).
+The results are aggregated using the creation date and tag, the smallest unit of time we support for this dataset is days.
+And so for each day and tag, we use the posts to calculate the number of questions and number of answers a specific tag appeared in for a specific day.
+Additionally we use the votes to calculate the number of upvotes and number of downvotes, and we use the comments to calculate the number of comments, again all is aggregated on tag and day.
+In fact tags are only defined for questions, however given an answer we can find its corresponding question and get its tags, similarly for votes and comments we can find its corresponding post and if it is a question we can get its tags, if it is an answer we can get its questions and then get the tags, by following the link structure one can therefore find the tags for the questions, answers, upvotes/downvotes and comments.
+One way to think of this dataset is that for each tag, we have the number of questions, answers, comments, upvotes and downvotes where that tag appears for each day ever since StackOverflow started operating.
+To reduce the size of the dataset and decrease the noise we had to filter out some tags, we implemented 2 different filtering schemes for this purpose, an automatic and a manual one.
+The automatic filtering scheme filters out all tags smaller than a threshold, the metrics are aggregated(we simply use the sum of all metrics) and we average out the time dimension, the result ends up being a single number for each tag which we can then use to filter out tags whose calculated values are smaller than a predefined threshold, this approach requires careful tuning of the threshold to the dataset so that important tags are not filtered out or irrelevant tags kept in.
+The manual filtering scheme implies creating a tag blacklist such that tags are filtered out if they appear on the blacklist, we implemented this scheme to have further control on which tags to remove and as a way to complement the automatic filtering approach.
+Essentially if a irrelavant tag still managed not to be filtered out using the automatic approach, using a tag black list is a way to make sure it will get filtered out either way.
+While this approach has its advantages, it is in fact very dataset specific, additionaly it is quite time consuming to create a comprehensive black list by hand.
+While our derived metrics have strong correlations, since as we increase one metric we would expect others to increase as well(e.g: popular tags such as "JavaScript" have high values for all the metrics), we expect the metrics to be different enough to be used for different visualizations.
+
+\subsubsection{Skills}
+For the skills dataset we are interested in the pairwise relationship between tags, while for the communities dataset we look at each tag in isolation along a time dimension, here we shall look at how often tags co-occur along a time dimension.
+The name of the dataset comes from the idea of skill intersection, which can be summarized in the following way - If a user participates in one community, what other communities is he likely to participate in?
+In other words, we are interested in finding pairs of communities where users that participate in one community also participate in the other, as an example communities based on the same technology stack will share many of the same users(e.g: front end technologies such as HTML, JavaScript and CSS will co-occur often), while communities from vastly different technologies will likely not co-occur so often(that is even though each community has its own users there are distinct non overlapping sets of users, meaning less or none user sharing between communities).
+Since the key concept here is the user, we must aggregate the posts and comments per user, meaning that for each user we get the complete history of all the posts and comments he participated in for the selected time unit.
+While we could have incorporated the votes on the calculations, they do not carry as much information for finding communities intersections as the posts and comments do and so we decided to leave them out for this dataset.
+As discussed in the previous section, we can get the tags out of comments or posts by following the link structure, therefore the set of posts and comments aggregated by user can be converted into a list of tags aggregated by user.
+From the list of tags we then calculate pair wise counts for the tags for each user and time unit.
+Having the pairwise counts we can sum the counts for each user to remove the user dimension, our final dataset consists of counts for pair wise tags over a time dimension.
+For the skills dataset we actually ended up using a different time unit than for the communities dataset, for the skills we aggregate by year while for the communities we aggregate by day.
+The reason for that is two fold, first of all while for the communities dataset our UI required a day oriented time dimension, a day oriented or month oriented skills was not required for our UI, second we were getting huge file sizes and aggregating by year was an attempt in that direction(this problem actually became less of an issue once we stopped having accummulated values, see Section 5).
+We apply a similar automatic filtering step for the skills dataset, namely if the count between 2 tags is smaller than a threshold we remove it, the threshold value again requires careful tuning.
+Another filtering technique we have implemented is to remove connections for the most connected tags, we empirically found out that well known tags like JavaScript tend to connect to many other tags, these connections are not all meaningful and so if we detect a tag is a well known tag(a tag that has many connections), we actually remove some the connections with lower counts.
+The last filtering technique we have attempted here has to do with the fact that we represent the data using a graph where each tag is encoded as a node(communities dataset) and each link encodes the community intersection strength(skills dataset), we shall go into much more detail about the visualizations in the next section.
+However we mention it here because on the graph structure nodes that do not connect to other nodes are not too interesting(e.g: isolated nodes), and so we remove tags from the communities dataset if they do not appear too often on the skills dataset(or in other words tags that have few or no connections to other tags).
+
+\subsubsection{Clusters}
+We actually did not envision this dataset initially but it made sense to include it as the application progressed.
+One problem we would eventually run into is that there are simply too many tags on StackOverflow, as we filter tags out we are obviously throwing away information, we would like to find a way that could use less tags(otherwise our visualization would become too crowded and also take too long to run), while at the same time not throwing away many relevant tags that we could use.
+The solution we found was to group tags in clusters using the skills dataset, the intuition is that tags that co-occured often could be grouped together into a cluster of tags, this way we could also afford richer visualizations that took into account the cluster structure and "squeeze" more tags into the visualization.
+It is also interesting to look at the automatic clusters that emerge by using our clustering approach, while the algorithm could without a doubt be improved, similar tags do tend to end up on the same cluster, for instance "eclipse", "gradle" and "android-fragment" end up on the "android" cluster.
+Our clustering algorithm works by progressively taking the pair of tags with the highest counts and making them a cluster, initially all tags start with their own clusters of size 1 and clusters are continuously merged as the algorithm proceeds.
+Special care must be paid so that the same tag does not end up on different clusters(a tag can only belong to a cluster) and so that clusters of clusters do not emerge(by limiting the recursion depth to 1).
+
+
+Section 5 or 6
+We ran into several problems regarding the data.
+Talk about accummulated
+Talk about time slider
+
