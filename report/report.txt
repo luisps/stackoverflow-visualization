@@ -2,7 +2,17 @@
 
 
 \section{Related work}
-
+Since we have used a public dataset it is only natural that other people have already used it for several uses and purposes.
+From what we could gather however most people build simple plots using the information contained on the dataset.
+These plots are mostly done for statistical purposes rather than for creating a compelling visualization.
+Some metrics people have tried plotting for statistical purposes are the average number of answers per question, average number of votes per question, time to first answer, etc.
+While computing dataset statistics has value on its own, it would not suffice to answer our visualization needs.
+The problem of detecting programming language popularity over time has an implicit time dimension, and so we could benefit from a plethora of visualizations specifically tailored for time series, that is visualizations that take into account the extra time dimension.
+Our problem is made more difficult by the fact that we are not simply seeing how the time dimension affects a specific programming language, since we deal with multiple programming languages in our visualization.
+The number of programming languages can range from a few dozen in our small scale application to hundreds or thousands if we were to scale up our application.
+The examples provided by D3.js were a great source of inspiration when it came to tailoring our own visualization, while we always had to adapt some of the ideas and discard a few others, it was undoubtedly a good starting point.
+Using a graph structure, where nodes represent programming languages and links represent a sort of relationship between programming languages was inspired from the Language Network example provided in the gallery of D3.js examples.
+While the problem domain is not exactly the same, for the the problem domain of human languages each node represents a human language and links represent relationship among languages(language similarity is encoded on the links), the problem domain of programming languages can also be formulated in a similar way where instead of nodes representing human languages they represent instead programming languages and links represent programming language similarity.
 
 \section{Dataset}
 
@@ -212,3 +222,4 @@ If we were to use the textual contents it would make sense to use data from anot
 However such a project would have moved out from the scope of the course.
 Ultimately the goals would be the same, which is finding programmer trends over time, but would be tackled in a completely different way.
 
+[1] - http://www.cotrino.com/2012/11/language-network/
