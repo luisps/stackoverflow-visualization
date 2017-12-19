@@ -1,0 +1,19 @@
+#zoom {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+}
+#zoom .labels {
+    pointer-events: none;
+}
+#zoom .labels p {
+    display: flex;
+    height: 100%;
+    line-height: 14px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+}
+#zoom text {
+    pointer-events: none;
+}

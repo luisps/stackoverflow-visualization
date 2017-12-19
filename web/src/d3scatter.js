@@ -1,236 +1,154 @@
 const d3scatter = (function () {
 
-    // Variables
-    let nodes = null,
-        svg = null,
-        width = null,
-        height = null,
-        margin = null,
-        xMetric = null,
-        yMetric = null,
-        xLabel = null,
-        yLabel = null,
-        xScale = null,
-        yScale = null,
-        tooltip = null,
-        filter = null
-    ;   
+    // Constants
+    const CHART_MARGIN_BOTTOM = 32;
+    const CHART_PADDING = 8;
+    const METRICS = [
+        {
+            x: 'answercount',
+            xLabel: 'Answers',
+            y: 'questioncount',
+            yLabel: 'Questions',
+        },
+        {
+            x: 'commentcount',
+            xLabel: 'Comments',
+            y: 'answercount',
+            yLabel: 'Answers',
+        },
+        {
+            x: 'downvotes',
+            xLabel: 'Downvotes',
+            y: 'upvotes',
+            yLabel: 'Upvotes',
+        }
+    ];
+
+    // Private Variables
+    let d3svg,
+        d3svgDimensions,
+        d3tooltip,
+        d3tooltipDimensions,
+        d3xLabel,
+        d3yLabel,
+        d3tabs,
+        $nodes = null,
+        $metric = METRICS[0],
+        xScale,
+        yScale
+    ;
 
     return {
         init
     };  
 
     function init() {
+        d3svg = d3.select('#scatter');
+        d3svgDimensions = d3svg.node().getBoundingClientRect();
 
-        var container = document.getElementById('scatter');
-        margin = {top: 10, right: 20, bottom: 35, left: 35};
+        // Initialize axis
+        d3svg.append('line')
+            .attr('x1', 1)
+            .attr('x2', 1)
+            .attr('y1', 0)
+            .attr('y2', d3svgDimensions.height - CHART_MARGIN_BOTTOM)
+        ;
 
-        width = container.offsetWidth - margin.left - margin.right;
-        height = container.offsetHeight - margin.top - margin.bottom;
+        // Initialize labels
+        d3xLabel = d3svg.append('text')
+            .attr('x', d3svgDimensions.width)
+            .attr('y', d3svgDimensions.height - CHART_MARGIN_BOTTOM - 0.25 * util.getRem())
+            .attr('text-anchor', 'end');
+        d3yLabel = d3svg.append('text')
+            .attr('x', 0.25 * util.getRem())
+            .attr('y', 0.75 * util.getRem());
 
-        //metrics to plot on the x and y axis
-        xMetric = 'questioncount';
-        yMetric = 'answercount';
+        // Initialize scales
+        xScale = d3.scaleLog().base(10).range([CHART_PADDING, d3svgDimensions.width - CHART_PADDING]);
+        yScale = d3.scaleLog().base(10).range([d3svgDimensions.height - CHART_PADDING - CHART_MARGIN_BOTTOM, CHART_PADDING]);
 
-        xLabel = 'Questions';
-        yLabel = 'Answers';
+        // Initialize tabs
+        d3tabs = d3.select('.mdl-tabs');
+        d3tabs.node().parentNode.setAttribute('y', d3svgDimensions.height - CHART_MARGIN_BOTTOM);
 
-        //add some padding so that there aren't dots on the origin
-        //or on the top right corner of graph
-        var padding = {top: 10, right: 15, bottom: 10, left: 10};
-        xScale = d3.scaleLog()
-            .base(10)
-            .clamp(true)
-            .range([padding.left, width - padding.right]);
-
-        yScale = d3.scaleLog()
-            .base(10)
-            .clamp(true)
-            .range([height - padding.top, padding.bottom]);
-
-        createChart(container);
+        // Initialize tooltip
+        d3tooltip = d3svg.select('.tooltip').attr('width', util.getRem() * (10));
+        d3tooltipDimensions = d3tooltip.node().getBoundingClientRect();
 
         // Event listeners
-        d3sidebar.$dispatcher.on('load.scatter', (data) => {
-            //scatter plot is hidden on local view
-            if (data.node != null)
-                return;
-
-            nodes = data.nodesByYear;
-            update();
-        });
-
+        d3sidebar.$dispatcher.on('load.scatter', load);
+        d3tabs.selectAll('.mdl-tabs__tab').on('click', onClick);
     }
 
-    function createChart(container) {
+    function load(data) {
+        console.time('d3scatter.load');
 
-        svg = d3.select(container).append('svg')
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom)
-            .append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-            ;
+        $nodes = data.nodesByYear;
+        if ($nodes === null) return console.timeEnd('d3scatter.load'); // scatter is not available when a tag is selected
 
-        tooltip = d3.select(container).select('.tooltip');
+        update();
 
-        //define gradient to be used for coloring dots
-        gradient = svg.append('defs')
-            .append('radialGradient')
-            .attr('id', 'dot-fill')
-            .attr('cx', '50%')
-            .attr('cy', '50%')
-            .attr('r', '50%')
-            .attr('fx', '50%')
-            .attr('fy', '50%')
-            ;
-
-        gradient.append('stop')
-            .attr('offset', '0%')
-            .attr('stop-color', 'white')
-            ;
-
-        gradient.append('stop')
-            .attr('offset', '100%')
-            .attr('stop-color', COLOR_PRIMARY)
-            ;
-
-		//X axis
-        var xAxis = svg.append('g')
-            .attr('class', 'scatter-x-axis')
-            .attr('transform', 'translate(0,' + height + ')')
-            ;
-
-        xAxis.append('line')
-            .attr('x1', 0)
-            .attr('y1', 0)
-            .attr('x2', width)
-            .attr('y2', 0)
-            ;
-
-        xAxis.append('text')             
-			.attr('transform', 'translate(' + (width/2) + ' ,' + 
-						   (margin.bottom - 15) + ')')
-			.text(xLabel);
-
-		//Y axis
-        var yAxis = svg.append('g')
-            .attr('class', 'scatter-y-axis')
-            ;
-
-        yAxis.append('line')
-            .attr('x1', 0)
-            .attr('y1', 0)
-            .attr('x2', 0)
-            .attr('y2', height)
-            ;
-
-		yAxis.append('text')
-			.attr('transform', 'rotate(-90)')
-			.attr('y', - margin.left + 10)
-			.attr('x', - (height / 2))
-			.attr('dy', '1em')
-			.text(yLabel);
-
-        d3.selectAll('#metrics .mdl-tabs__tab').call(metrics);
-
+        console.timeEnd('d3scatter.load');
     }
 
     function update() {
+        // Update scales
+        let xDomain = d3.extent($nodes, (n) => n[$metric.x]),
+            yDomain = d3.extent($nodes, (n) => n[$metric.y]);
 
-        xScale.domain(d3.extent(nodes, function(n) { return n[xMetric]; }));
-        yScale.domain(d3.extent(nodes, function(n) { return n[yMetric]; }));
+        xScale.domain([Math.max(0.1, xDomain[0]), xDomain[1]]);
+        yScale.domain([Math.max(0.1, yDomain[0]), yDomain[1]]);
 
-		var dot = svg.selectAll('.dot')
-			.data(nodes);
+        // Update chart
+        let dots = d3svg.select('.chart').selectAll('circle').data($nodes);
+        dots.exit().remove();           // Items to be removed
+        dots.enter().append('circle')   // Items to be added
+            .attr('r', 0.35 * util.getRem())
+            .attr('fill', 'url(#gradient)')
+            .attr('cx', (n) => xScale(Math.max(0.1, n[$metric.x])))
+            .attr('cy', (n) => yScale(Math.max(0.1, n[$metric.y])))
+            .on('mouseover', onMouseEvent)
+            .on('mouseout', onMouseEvent);
+        dots.transition()               // Items to be updated
+            .attr('cx', (n) => xScale(Math.max(0.1, n[$metric.x])))
+            .attr('cy', (n) => yScale(Math.max(0.1, n[$metric.y])))
+        ;
 
-		dot.enter().append('circle')
-			.attr('class', 'dot')
-            .attr('r', 5)
-            .attr('fill', 'url(#dot-fill)')
-            .attr('cy', height)  // set y here for smooth transition
-            .merge(dot)
-            .call(toolTip)
-            .transition()
-            .attr('cx', function(d) { return xScale(d[xMetric]); })
-            .attr('cy', function(d) { return yScale(d[yMetric]); })
-            ;
-
-        dot.exit().remove();
-
-    }   
-
-    function metrics(selection) {
-
-        selection.on('click', function () {
-
-            selection.attr('class', 'mdl-tabs__tab');
-            this.setAttribute('class', 'mdl-tabs__tab is-active');
-
-            var text = this.innerText;
-
-            if (text == 'QUESTIONS-ANSWERS') {
-                xMetric = 'questioncount';
-                yMetric = 'answercount';
-
-                xLabel = 'Questions';
-                yLabel = 'Answers';
-            } else if (text == 'ANSWERS-COMMENTS') {
-                xMetric = 'answercount';
-                yMetric = 'commentcount';
-
-                xLabel = 'Answers';
-                yLabel = 'Comments';
-            } else if (text == 'UPVOTES-DOWNVOTES') {
-                xMetric = 'upvotes';
-                yMetric = 'downvotes';
-
-                xLabel = 'Upvotes';
-                yLabel = 'Downvotes';
-            }
-
-            //update axis labels
-            svg.select('.scatter-x-axis text').text(xLabel);
-            svg.select('.scatter-y-axis text').text(yLabel);
-
-            update();
-
-        });
-
+        // Update labels
+        d3xLabel.text($metric.xLabel);
+        d3yLabel.text($metric.yLabel);
     }
 
-    function toolTip(selection) {
+    function onClick() {
+        let id = +d3.event.currentTarget.href.slice(-1);
 
-        selection.on('mouseenter', function (d, i) {
+        if (METRICS[id] === $metric) return;
+        $metric = METRICS[id];
 
-            tooltip.transition()
-                .duration(200)
-                .style('opacity', 0.9);
-
-            tooltip
-                .style('left', margin.left + xScale(d[xMetric]) + 'px')
-                .style('top', margin.top + yScale(d[yMetric]) - 40  + 'px')
-                .html(toolTipHTML(d))
-                .style('transform', 'translate(-50%, -50%)')
-                ;
-
-        });
-
-        selection.on('mouseout', function (d, i) {
-
-            tooltip.transition()
-                .duration(400)
-                .style('opacity', 0.0);
-
-        });
-
+        update();
     }
 
-    function toolTipHTML(d) {
-        html = ''
-        html += '<span><b>' + d['$tag'] + '</b></span><br>';
-        html += '<span>X: ' + d[xMetric] + '  Y: ' + d[yMetric] + '</span>';
+    function onMouseEvent(node) {
+        let e = d3.event,
+            tooltip = d3tooltip.node(),
+            x = xScale(Math.max(0.1, node[$metric.x])) + 0.6 * util.getRem(),
+            y = yScale(Math.max(0.1, node[$metric.y])) - d3tooltipDimensions.height / 2;
 
-        return html;
+        // Fit inside
+        x = x + d3tooltipDimensions.width > d3svgDimensions.width ? x - d3tooltipDimensions.width - 1.2 * util.getRem() : x;
+        y = Math.max(0, Math.min(d3svgDimensions.height - d3tooltipDimensions.height - CHART_MARGIN_BOTTOM, y));
+
+        // Update data
+        d3tooltip.select('thead td').text(node.$tag);
+        d3tooltip.select('.x-label').text($metric.xLabel);
+        d3tooltip.select('.x-value').text(node[$metric.x]);
+        d3tooltip.select('.y-label').text($metric.yLabel);
+        d3tooltip.select('.y-value').text(node[$metric.y]);
+
+        e.type === 'mouseover' ? tooltip.classList.add('is-active') : tooltip.classList.remove('is-active');
+        d3tooltip
+            .attr('x', x)
+            .attr('y', y);
     }
 
 }());

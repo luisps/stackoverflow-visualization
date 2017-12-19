@@ -1,0 +1,32 @@
+#overview {
+    display: flex;
+    flex-direction: column;
+    height: 14rem;
+}
+#scatter {
+    height: calc(100% - 2.2rem);
+}
+
+#scatter line {
+    stroke: #e0e0e0;
+}
+
+#scatter > text {
+    fill: rgba(0,0,0,.54);
+    font-size: 0.75rem;
+}
+
+#scatter .mdl-tabs__tab-bar,
+#scatter .mdl-tabs__tab {
+    height: 32px;
+    line-height: 32px;
+}
+
+#scatter .mdl-tabs__tab-bar {
+    border-bottom: initial;
+    border-top: 1px solid #e0e0e0;
+}
+#scatter .mdl-tabs__tab.is-active::after {
+    bottom: initial;
+    top: 0;
+}

@@ -48,11 +48,13 @@ const d3donut = (function () {
 
         //width and height will be the same for both donut charts
         //we set the donut's height on the CSS and use it to calculate the width
-        container = document.getElementById('sub-communities');
-        height = container.offsetHeight;
+        let container = document.getElementById('scatter');
+        let containerDimensions = container.getBoundingClientRect();
+
+        height = containerDimensions.height;
 
         widthDonut = height;
-        widthLegend = container.offsetWidth - widthDonut;
+        widthLegend = containerDimensions.width - widthDonut;
 
         //control how far away the legend is from the donut
         widthLegend *= 0.85;
@@ -62,11 +64,11 @@ const d3donut = (function () {
         innerRadius = outerRadius * 0.8;
 
         //create SVGs for both charts
-        var res = createChart('#sub-communities');
+        var res = createChart('#donut-sub');
         svgChildren = res.donut;
         legendChildren = res.legend;
 
-        res = createChart('#related-communities');
+        res = createChart('#donut-related');
         svgRelated = res.donut;
         legendRelated = res.legend;
 
@@ -116,7 +118,7 @@ const d3donut = (function () {
 
         drawChart(svgChildren, legendChildren, donutData, colorScaleChildren);
 
-        var slices = d3.selectAll('#sub-communities .slice');
+        var slices = d3.selectAll('#donut-sub .slice');
         slices.call(toolTip, svgChildren, colorScaleChildren);
         slices.call(interactBubble);
 
@@ -138,7 +140,7 @@ const d3donut = (function () {
 
         drawChart(svgRelated, legendRelated, donutData, colorScaleRelated);
 
-        var slices = d3.selectAll('#related-communities .slice');
+        var slices = d3.selectAll('#donut-related .slice');
         slices.call(toolTip, svgRelated, colorScaleRelated);
 
     }
@@ -178,18 +180,20 @@ const d3donut = (function () {
 
         var chart = d3.select(selector);
 
-        var donut = chart.append('svg')
+        var donut = chart/*.append('svg')
             .attr('width', widthDonut)
             .attr('height', height)
-            .attr('class', 'donut-chart')
+            .attr('class', 'donut-chart')*/
             .append('g')
             .attr('transform', 'translate('+widthDonut/2+','+height/2+')')
             ;
 
-        var legend = chart.append('svg')
+        var legend = chart.append('g')
+            .attr('transform', 'translate(' + (widthDonut + 1 * util.getRem()) + ', 0)')
+            /*.append('svg')
             .style('width', widthLegend + 'px')
             .style('height', height + 'px')
-            .attr('class', 'donut-legend')
+            .attr('class', 'donut-legend')*/
             ;
 
         return {donut: donut, legend: legend};

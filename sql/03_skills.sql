@@ -139,8 +139,8 @@ CREATE TABLE skills AS
     )
     SELECT
         *,
-        ROW_NUMBER() OVER(PARTITION BY tag1 ORDER BY "count" DESC) rank1,
-        ROW_NUMBER() OVER(PARTITION BY tag2 ORDER BY "count" DESC) rank2
+        ROW_NUMBER() OVER(PARTITION BY tag1,"year" ORDER BY "count" DESC) rank1,
+        ROW_NUMBER() OVER(PARTITION BY tag2,"year" ORDER BY "count" DESC) rank2
     FROM
         (SELECT
             "year",

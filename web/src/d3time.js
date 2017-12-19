@@ -27,7 +27,10 @@ const d3time = (function () {
         yScaleArea = d3.scaleLinear().range([16, d3svgDimensions.height]);
 
         xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat('%Y'));
-        d3svg.select('.axis').append('line').attr('x2', d3svgDimensions.width);
+        d3svg.select('.axis').append('line')
+            .attr('y1', 0.5)
+            .attr('y2', 0.5)
+            .attr('x2', d3svgDimensions.width);
 
         // Initialize area
         d3area = d3.area()
@@ -41,17 +44,7 @@ const d3time = (function () {
             .attr('stroke', COLOR_PRIMARY)
             .attr('fill', COLOR_PRIMARY_OPACITY_50);
 
-        /*
-        // Initialize brush
-        d3brush = d3.brushX()
-            .extent([[0, 0], [d3svgDimensions.width, d3svgDimensions.height]])
-            .on('end', brushed);
-
-
-        d3svg.select('.area').attr('transform', 'translate(' + PADDING_LEFT + ', 0)').attr('fill', COLOR_PRIMARY);
-        d3svg.select('.axis').attr('transform', 'translate(' + PADDING_LEFT + ',' + d3svgDimensions.height + ')');
-        d3svg.select('.brush').attr('transform', 'translate(' + PADDING_LEFT + ', 0)').attr('stroke-width', '0');
-        */
+        // Event listeners
         data.$dispatcher.on('load.time', load);
     }
 

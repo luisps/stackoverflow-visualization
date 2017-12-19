@@ -9,7 +9,7 @@ const d3votes = (function () {
         d3svgDimensions,
         d3tooltip,
         d3tooltipDimensions,
-        $nodes,
+        $nodes = null,
         $nodeWidth,
         yScaleUpvote,
         yScaleDownvote
@@ -23,14 +23,6 @@ const d3votes = (function () {
     function init() {
         d3svg = d3.select('#votes');
         d3svgDimensions = d3svg.node().getBoundingClientRect();
-
-        // Initialize axis
-        d3svg.append('line')
-            .attr('x1', 0)
-            .attr('x2', d3svgDimensions.width)
-            .attr('y1', d3svgDimensions.height / 2)
-            .attr('y2', d3svgDimensions.height / 2)
-        ;
 
         // Initialize scales
         yScaleUpvote = d3.scaleLinear().range([0, d3svgDimensions.height / 2]);
@@ -84,7 +76,7 @@ const d3votes = (function () {
         console.timeEnd('votes.load');
     }
 
-    function tooltip(e, x, inverted) {
+    function update(e, x, y, isActive, isInverted) {
         let tooltip = d3tooltip.node();
 
         // As $nodes doesn't always have the data for the entire year, we need to calculate the week where the data starts on
@@ -93,11 +85,11 @@ const d3votes = (function () {
             nodeIndex = (nodeX - d3.timeWeek.count(d3.timeYear($nodes[$nodes.length - 1].$date), $nodes[0].$date))/* * 7 + nodeY - $nodes[0].$date.getDay()*/,
             node = x >= 0/* && y >= 0*/ && (e.type === 'mouseover' || e.type === 'mousemove') ? $nodes[nodeIndex] : null;
 
-        if (node) {
+        if (isActive && node) {
             x = (nodeX + 1) * $nodeWidth;
 
             // Fit inside
-            if (inverted || x + d3tooltipDimensions.width > d3svgDimensions.width) {
+            if (isInverted || x + d3tooltipDimensions.width > d3svgDimensions.width) {
                 tooltip.classList.add('is-inverted');
                 x = x - d3tooltipDimensions.width - $nodeWidth;
             } else {
@@ -120,17 +112,18 @@ const d3votes = (function () {
         if (!$nodes) return;
 
         let e = d3.event,
+            tooltip = d3tooltip.node(),
             x = e.pageX - d3svgDimensions.left;
 
-        tooltip(e, x);
+        update(e, x, 0, true, false);
 
-        $dispatcher.call('tooltip', this, { e, x, inverted: d3tooltip.node().classList.contains('is-inverted') });
+        $dispatcher.call('tooltip', this, { e, x, isActive: tooltip.classList.contains('is-active'), isInverted: tooltip.classList.contains('is-inverted') });
     }
     function onTooltip(data) {
         let e = data.e,
             x = data.x;
 
-        tooltip(e, x, data.inverted);
+        update(e, x, 0, data.isActive, data.isInverted);
     }
 
 

@@ -3,6 +3,10 @@ const d3heatmap = (function () {
     // Constants
     const FORMAT_DAY = d3.timeFormat('%B %d');
     const FORMAT_WEEK = d3.timeFormat('%V');
+    const NODE_OPACITY = (n) => {
+        let a = n.answercount + n.commentcount + n.questioncount;
+        return a > 0 ? opacityScale(a) : 0;
+    };
 
     // Private Variables
     let $dispatcher = d3.dispatch('tooltip'),
@@ -90,12 +94,12 @@ const d3heatmap = (function () {
             .merge(chart)               // Items to be added + updated
             .attr('x', (n, i) => Math.floor((i + indexOffset) / 7) * $nodeWidth)
             .attr('y', (n, i) => (i + indexOffset) % 7 * $nodeHeight)
-            .attr('opacity', (n) => opacityScale(n.answercount + n.commentcount + n.questioncount));
+            .attr('opacity', NODE_OPACITY);
 
         console.timeEnd('d3heatmap.load');
     }
 
-    function tooltip(e, x, y, inverted, weekOnly) {
+    function update(e, x, y, isActive, isInverted, isWeekOnly) {
         let tooltip = d3tooltip.node();
 
         // As $nodes doesn't always have the data for the entire year, we need to calculate the week where the data starts on
@@ -105,13 +109,13 @@ const d3heatmap = (function () {
             nodeIndex = (nodeX - d3.timeWeek.count(d3.timeYear($nodes[$nodes.length - 1].$date), $nodes[0].$date)) * 7 + (nodeY - $nodes[0].$date.getDay()),
             node = x >= 0 && y >= 0 && (e.type === 'mouseover' || e.type === 'mousemove') ? $nodes[nodeIndex] : null;
 
-        if (node) {
+        if (isActive && node) {
             x = (nodeX + 1) * $nodeWidth;
             y = (nodeY * $nodeHeight);
 
             // Fit inside
             y = Math.min(y, $nodeHeight * 7 - d3tooltipDimensions.height + 1); // No idea where the +1 comes from
-            if (inverted || x + d3tooltipDimensions.width * (weekOnly ? 0.5 : 1) > d3svgDimensions.width) {
+            if (isInverted || x + d3tooltipDimensions.width * (isWeekOnly ? 0.5 : 1) > d3svgDimensions.width) {
                 tooltip.classList.add('is-inverted');
                 x = x - d3tooltipDimensions.width - $nodeWidth;
             } else {
@@ -119,7 +123,7 @@ const d3heatmap = (function () {
             }
 
             // Update data
-            d3tooltip.select('.day').style('transform', weekOnly ? 'scale(0)' : '');
+            d3tooltip.select('.day').style('transform', isWeekOnly ? 'scale(0)' : '');
             d3tooltip.select('.day thead td').text(FORMAT_DAY(node.$date));
             d3tooltip.select('.day .answers').text(node.answercount);
             d3tooltip.select('.day .comments').text(node.commentcount);
@@ -143,19 +147,20 @@ const d3heatmap = (function () {
         if (!$nodes) return;
 
         let e = d3.event,
+            tooltip = d3tooltip.node(),
             x = e.pageX - d3svgDimensions.left,
             y = e.pageY - d3svgDimensions.top - 1.7 * util.getRem();
 
-        tooltip(e, x, y, false, false);
+        update(e, x, y, true, false, false);
 
-        $dispatcher.call('tooltip', this, { e, x, inverted: d3tooltip.node().classList.contains('is-inverted') });
+        $dispatcher.call('tooltip', this, { e, x, isActive: tooltip.classList.contains('is-active'), isInverted: tooltip.classList.contains('is-inverted') });
     }
 
     function onTooltip(data) {
         let e = data.e,
             x = data.x;
 
-        tooltip(e, x, 0, data.inverted, true);
+        update(e, x, 100, data.isActive, data.isInverted, true);
     }
 
 })();

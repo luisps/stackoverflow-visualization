@@ -1,0 +1,11 @@
+#communities > div {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    height: 14rem;
+}
+
+#donut-related,
+#donut-sub {
+    height: calc(100% - 2.2rem)
+}

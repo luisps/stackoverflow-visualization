@@ -2,14 +2,12 @@
     font-family: 'Open Sans', sans-serif;
 }
 
+/* Header */
 #logo, #time {
     height: 52px;
 }
 
-#time {
-    flex-grow: 1
-}
-
+/* Sidebar */
 #sidebar {
     position: absolute;
     left: 0.8rem;
@@ -18,7 +16,7 @@
     min-width: 32rem;
     padding: 0.8rem;
     background: white;
-    overflow: visible;
+    overflow: initial;
 }
 #sidebar > .icon {
     width: 6rem;
@@ -26,7 +24,7 @@
     margin: -4rem auto 0;
     background-size: contain;
     border-radius: 50%;
-    border: 6px solid white;
+    border: 6px solid #F48024;
 }
 #sidebar > .tag {
     width: 100%;
@@ -37,7 +35,7 @@
 }
 #sidebar .title {
     margin-top: 0.5rem;
-    margin-bottom: 0.125rem;
+    margin-bottom: 0.5rem;
     font-size: 1.2rem;
 }
 #sidebar .label {
@@ -49,93 +47,9 @@
     text-transform: uppercase;
 }
 
-#votes {
-	position: relative;
-    height: 5rem;
-}
-
-#votes line {
-	stroke: gray;
-	stroke-width: 0.5;
-}
-
-.upvotes-bar {
-	fill: #90EE90;
-}
-
-.downvotes-bar {
-	fill: #ef3d47;
-}
-
-#offensive-reports {
-    height: 4.5rem;
-}
 
 #communities {
-	/*
-	make sure div isnt't shown when app starts
-	setting display:none here wouldn't work since
-	the children elements don't expect empty
-	parent containers
-	*/
-	visibility: hidden;
-}
-
-#scatter-container > div, #communities > div {
 	display: flex;
-	flex-direction: column;
-    height: 12rem;
-}
-
-#sub-communities,
-#related-communities,
-#scatter {
-	position: relative;
-	flex: 1;
-}
-
-.scatter-x-axis line, .scatter-y-axis line {
-	stroke: gray;
-	stroke-width: 1px;
-}
-
-.scatter-x-axis text, .scatter-y-axis text {
-    fill: #555;
-	font-size: 0.9rem;
-	text-anchor: middle;
-}
-
-.donut-chart {
-	position: absolute;
-	left: 0;
-}
-
-.donut-legend {
-	position: absolute;
-	right: 0;
-	padding-top: 5%;
-}
-
-#zoom {
-	position: absolute;
-	height: 100%;
-	width: 100%;
-}
-
-#zoom .labels {
-    pointer-events: none;
-}
-#zoom .labels p {
-    display: flex;
-    height: 100%;
-    line-height: 14px;
-    text-align: center;
-    align-items: center;
-    justify-content: center;
-}
-
-#zoom text {
-    pointer-events: none;
 }
 
 .tooltip {
@@ -181,40 +95,7 @@
     padding-right: 1.5rem;
 }
 
-/*
-.tooltip {   
-	position: absolute;
-	display: inline-block;
-	text-align: center;
-    background-color: #555;
-    color: #fff;
-	font: 12px sans-serif;
-	border-radius: 6px;
-    padding: 5px 5px;
-    z-index: 1;
-	opacity: 0;  /* starts hidden by default
-	pointer-events: none;
-}
-
-.tooltip::after {
-	/* CSS to add a triangle to the tooltips's bottom region
-    content: " ";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #555 transparent transparent transparent;
-}
-*/
-
-#metrics .mdl-tabs__tab {
-	font-size: 10px;
-	padding: 0 14px;
-	/*line-height: 22px;*/
-}
-
+/* Responsive Scaling */
 @media screen and (min-width: 1920px)                           {  html { font-size: 16px; }  }
 @media screen and (min-width: 1600px) and (max-width: 1919px)   {  html { font-size: 15px; }  }
 @media screen and (min-width: 1366px) and (max-width: 1599px)   {  html { font-size: 14px; }  }

@@ -15,9 +15,12 @@
     <script src="libs/mdl/material.min.js"></script>
 
     <!-- Source -->
+    <link href= "css/d3donut.css" rel="stylesheet">
     <link href= "css/d3heatmap.css" rel="stylesheet">
+    <link href= "css/d3scatter.css" rel="stylesheet">
     <link href= "css/d3time.css" rel="stylesheet">
     <link href= "css/d3votes.css" rel="stylesheet">
+    <link href= "css/d3zoom.css" rel="stylesheet">
     <script	src="src/constants.js" charset="utf-8"></script>
     <script	src="src/d3bubble.js" charset="utf-8"></script>
     <script	src="src/d3donut.js" charset="utf-8"></script>
@@ -66,8 +69,8 @@
             <!-- Top -->
             <div class="icon"></div>
             <div class="tag">&nbsp;</div>
-            <!-- HEATMAP :: Community Activity -->
-            <div class="title">Community Activity</div>
+            <!-- Community/Region Activity -->
+            <div class="title-activity title">Region Activity</div>
             <svg id="heatmap">
                 <g class="axis-month"></g>
                 <g class="axis-week"></g>
@@ -118,9 +121,10 @@
                     </table>
                 </foreignObject>
             </svg>
-            <!-- Community Health -->
-            <div class="title">Community Health</div>
+            <!-- Community/Region Health -->
+            <div class="title-health title">Region Health</div>
             <svg id="votes">
+                <line x1="0" x2="100%" y1="50%" y2="50%"></line>
                 <g class="downvotes"></g>
                 <g class="upvotes"></g>
                 <rect class="area" height="100%" width="100%" fill="red" opacity="0"></rect>
@@ -144,30 +148,59 @@
                     </table>
                 </foreignObject>
             </svg>
-            <div class="label">Offensive Reports</div>
-            <!-- <div id="offensive-reports"></div> -->
-            <div id="communities">
-                <div style="width: 50%;">
-                    <div class="title">Sub Communities</div>
-                    <div id="sub-communities"></div>
-                </div>
-                <div style="width: 50%;">
-                    <div class="title">Related Communities</div>
-                    <div id="related-communities"></div>
-                </div>
+            <!-- Region Overview -->
+            <div id="overview">
+                <div class="title">Region Overview</div>
+                <svg id="scatter">
+                    <defs>
+                        <radialGradient id="gradient" cx="50%" cy="50%" fx="50%" fy="50%" r="50%">
+                            <stop offset="0%" stop-color="white"></stop>
+                            <stop offset="100%" stop-color="#F48024"></stop>
+                        </radialGradient>
+                    </defs>
+                    <g class="chart"></g>
+                    <foreignObject class="tooltip" height="80">
+                        <table>
+                            <thead>
+                            <tr>
+                                <td colspan="2">Javascript</td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td class="y-label">Upvotes</td>
+                                <td class="y-value">562</td>
+                            </tr>
+                            <tr>
+                                <td class="x-label">Downvotes</td>
+                                <td class="x-value">855</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </foreignObject>
+                    <foreignObject height="40" width="100%">
+                        <div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
+                            <div class="mdl-tabs__tab-bar">
+                                <a href="#overview-0" class="mdl-tabs__tab is-active">Questions/Answers</a>
+                                <a href="#overview-1" class="mdl-tabs__tab">Answers/Comments</a>
+                                <a href="#overview-2" class="mdl-tabs__tab">Upvotes/Downvotes</a>
+                            </div>
+                            <div id="overview-0"></div>
+                            <div id="overview-1"></div>
+                            <div id="overview-2"></div>
+                        </div>
+                    </foreignObject>
+                </svg>
             </div>
-            <div id="scatter-container">
+            <!-- Related/Sub Communities -->
+            <div id="communities">
                 <div>
-                  <div id="metrics" class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
-                    <div class="mdl-tabs__tab-bar">
-                      <span class="mdl-tabs__tab is-active">Questions-Answers</span>
-                      <span class="mdl-tabs__tab">Answers-Comments</span>
-                      <span class="mdl-tabs__tab">Upvotes-Downvotes</span>
-                    </div>
-                  </div> 
-                  <div id="scatter">
-                      <div class="tooltip"></div>
-                  </div>
+                    <div class="title">Related Communities</div>
+                    <svg id="donut-related"></svg>
+                </div>
+                <div>
+                    <div class="title">Sub Communities</div>
+                    <svg id="donut-sub"></svg>
                 </div>
             </div>
         </div>
