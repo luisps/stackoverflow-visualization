@@ -133,7 +133,7 @@ const d3bubble = (function () {
 
             //donut chart interaction
             recursion.mouseenter = true;
-            d3.select('#sub-communities .slice:nth-of-type('+(i+1)+')').dispatch('mouseenter');
+            d3.select('#donut-sub .slice:nth-of-type('+(i+1)+')').dispatch('mouseenter');
 
 
         });
@@ -165,7 +165,7 @@ const d3bubble = (function () {
 
             //donut chart interaction
             recursion.mouseout = true;
-            d3.select('#sub-communities .slice:nth-of-type('+(i+1)+')').dispatch('mouseout');
+            d3.select('#donut-sub .slice:nth-of-type('+(i+1)+')').dispatch('mouseout');
 
         });
         
