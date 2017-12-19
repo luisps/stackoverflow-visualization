@@ -1,5 +1,10 @@
 
-Here we write the report.
+
+
+\section{Related work}
+
+
+\section{Dataset}
 
 \subsection{Dataset Introduction}
 For our visualization we use data for the popular Q&A website StackOverflow.com.
@@ -37,6 +42,10 @@ Other users might prefer using fewer tags on their questions and might stick wit
 Additionally each post(question or answer) has comments and votes associated to it.
 A comment is essentially text and some metadata, while votes can be distinguished as either upvotes or downvotes for each post, each comment or vote has an associated creation date as part of the metadata.
 Each one of the concepts described so far(posts, comments and votes) have an associated user which corresponds to the StackOverflow's user responsible for that activity.
+StackOverflow currently exists in 5 different languages, which in our application we call regions.
+Those languages are by order of magnitude(amount of data) English, Russian, Portuguese, Spanish and Japanese.
+In terms of relative sizes the dataset sizes for English dwarf all other datasets, which does make sense given that StackOverflow was originally launched in the US and that English is the de facto global language.
+For our application it meant that even when the datasets for the other regions worked well, we would get into scalability issues when processing or using the dataset for the English language.
 
 \subsection{Data processing}
 To support the tasks defined for our visualization we have created 3 different datasets, to properly distinguish among them we have named them accordingly to the role they play in the visualization.
@@ -57,6 +66,7 @@ The automatic filtering scheme filters out all tags smaller than a threshold, th
 The manual filtering scheme implies creating a tag blacklist such that tags are filtered out if they appear on the blacklist, we implemented this scheme to have further control on which tags to remove and as a way to complement the automatic filtering approach.
 Essentially if a irrelavant tag still managed not to be filtered out using the automatic approach, using a tag black list is a way to make sure it will get filtered out either way.
 While this approach has its advantages, it is in fact very dataset specific, additionaly it is quite time consuming to create a comprehensive black list by hand.
+On the latest versions of the prototype we have added an extra filter to deal with multiple regions as well, it is a simple filter that filters out all the tags that contain non ASCII characters.
 While our derived metrics have strong correlations, since as we increase one metric we would expect others to increase as well(e.g: popular tags such as "JavaScript" have high values for all the metrics), we expect the metrics to be different enough to be used for different visualizations.
 
 \subsubsection{Skills}
@@ -80,12 +90,125 @@ We actually did not envision this dataset initially but it made sense to include
 One problem we would eventually run into is that there are simply too many tags on StackOverflow, as we filter tags out we are obviously throwing away information, we would like to find a way that could use less tags(otherwise our visualization would become too crowded and also take too long to run), while at the same time not throwing away many relevant tags that we could use.
 The solution we found was to group tags in clusters using the skills dataset, the intuition is that tags that co-occured often could be grouped together into a cluster of tags, this way we could also afford richer visualizations that took into account the cluster structure and "squeeze" more tags into the visualization.
 It is also interesting to look at the automatic clusters that emerge by using our clustering approach, while the algorithm could without a doubt be improved, similar tags do tend to end up on the same cluster, for instance "eclipse", "gradle" and "android-fragment" end up on the "android" cluster.
-Our clustering algorithm works by progressively taking the pair of tags with the highest counts and making them a cluster, initially all tags start with their own clusters of size 1 and clusters are continuously merged as the algorithm proceeds.
+Our clustering algorithm works by progressively taking the pair of tags with the highest counts and making them a cluster, initially all tags start with their own clusters of size 1 and clusters are continuously merged at each step of the algorithm.
 Special care must be paid so that the same tag does not end up on different clusters(a tag can only belong to a cluster) and so that clusters of clusters do not emerge(by limiting the recursion depth to 1).
+For this dataset we could have implemented and compared multiple clustering algorithms, however we prefered to dedicate our time polishing the visualization instead.
+It turned out that our simple clustering approach returned meaningful clusters, at least good enough to be considered useful.
 
+\section{Visualization}
 
-Section 5 or 6
-We ran into several problems regarding the data.
-Talk about accummulated
-Talk about time slider
+\subsection{Overall	Description}
+In this section we shall give an overview of our visualization, its multiple components and what they represent.
+Our visualization can be loosely summarized as containing 3 main components, the header, the graph and the side bar.
+The header sits at the top of the page, besides the StackOverflow logo on the left corner it contains the year selector on the middle and region selector on the right corner.
+The region selector is a drop down menu that displays a list of the supported regions, currently there are 5 supported regions for 5 different languages, those languages are English, Russian, Portuguese, Spanish and Japanese.
+The region selector can be used to alternate between regions, in our visualization there can be only one region selected at a time.
+All other idioms depend on the selected region and so all get updated when the region changes.
+The year selector can be used to select a specific year for the selected region, different regions have been launched in different periods and this will reflect on the year selector, for example StackOverflow in Spanish was launched at the end of 2015 while the original StackOverflow in English goes back all the way to 2008.
+On the background of the year selector there is an area chart, this chart plots the activity over time for the selected region ever since it was launched up to the latest data dump release.
+It can be used among other things to detect spikes of activity(periods with more activity than others).
+For the following discussion we use the term activity to mean an aggregation of all derived metrics for the communities dataset(meaning the number of questions, answers, comments and upvotes/downvotes).
+
+Moving on to the next visualization is the graph, the graph takes center stage on our visualization by occupying a great portion of the screen.
+For the graph we apply a force layout, which is a physics simulation provided by D3.js.
+As the data is updated nodes are added to random locations, the physics engine then applies different forces to calculate the nodes' position at each step and eventually after a while the graph settles down, at that moment all nodes have fixed positions.
+Each node in our graph represents a tag(communities dataset), links between nodes represent the co-occurence between pairs of tags(skills dataset).
+The graph can be zoomed in and out and dragged around to change the point of focus.
+The tags we chose to display on the graph are the clusters, meaning the tags that aggregate other tags(clusters dataset).
+Clicking on a tag brings up "a bird eye's view" for that tag, by showing the tags that cluster is associated with using a bubble chart to display the clustered tags.
+Due to our clustering algorithm, there are tags that end up without any clustered tags inside them, for those tags we chose not to display the bubble chart.
+Furthermore clicking on a tag has the effect of automatically zooming in to the tag, allowing us to inspect its inner contents.
+Then clicking on the same tag again has the effect of zooming out to the global view.
+
+Now we describe the sidebar. The sidebar displays useful information that complements the visualization provided by the graph.
+The sidebar has 2 main views: a global view and a tag or local view, depending on the current view it will influence which charts will be shown.
+The view is controlled by the graph, when the application starts the sidebar starts on global view, whenever a tag on the graph is clicked the sidebar goes into local view, when the same tag is clicked again the graph goes back to global view.
+On the upper part of the sidebar is a label field, on the local view it will display the name of the selected tag and its icon, while on the global view it will display the name of the region.
+The first chart of the sidebar is a calendar heatmap, it displays the activity for each day of the year for the selected year of choice. The activity is encoded on the color of each square, more active days are encoded in darker squares.
+Each column of the calendar heatmap represents a week while each square represents a day.
+By hovering on a square a tooltip is shown that displays the values for the derived metrics(the metrics we use here are the number of questions, answers and comments) on that specific day. 
+Additionally a second tooltip is shown displaying the counts for the same metrics but now aggregated by week.
+The next chart is the votes chart, each bar on the positive Y axis represents the amount of upvotes and each bar on the negative Y axis represent the amount of downvotes.
+The X axis is organized per week so that each bar aggregates all the upvotes and downvotes on that week, there is a strong relationship between the calendar heatmap and the votes chart as each unit on the X axis represents weeks for both charts, and therefore to improve the experience we aligned the weeks on the calendar heatmap with the weeks on the votes chart.
+Hovering over a specific week will show a tooltip with the amount of upvotes and downvotes for that week.
+Both the calendar heatmap and votes chart are shown on global and local views, however they display different information.
+On the local view the metrics are shown for the selected tag on both charts, meaning that if we see 50 upvotes and 30 downvotes for a week those are the number of upvotes/downvotes that occurred on that week for the selected tag.
+On the global view however we display the metrics aggregated for all tags, meaning that metrics are summed over all tags and the resulting metrics are shown.
+
+The next chart will change depending on whether we are on global or on local view.
+For the global view we display a scatter plot, where each point on the scatter plot represents a tag from the graph.
+We can then choose between a set of metrics with the hope of finding correlations between metrics, the supported pair of metrics are Questions/Answers, Answers/Comments and Upvotes/Downvotes.
+Clicking on a metric changes the X and Y axis and moves around the data points.
+Hovering over a data point will display a tooltip with the name of the tag and the exact values for both metrics.
+For the local view we display 2 donut charts side by side, which we name related communities and sub communities.
+Each one of the 2 charts displays different information, since these charts only exist exist on the local view they make sense in the context of having a selected tag.
+For the related communities we display all tags that are related to the selected tag, for tag similarity we use the skills dataset.
+Out of all links on the graph we get the links that connect at either end to the selected tag, the links are sorted by their counts and displayed on the donut chart.
+For the sub communities we display all tags that belong to the cluster of the selected tag, for cluster information we use the clusters dataset.
+Hovering over a tag on both the donut charts displays a tooltip inside the donut chart showing the tag name and corresponding percentage.
+Furthermore there is also a legend that displays the tags with the biggest slices.
+The bubble chart interacts with the sub communities, by hovering over a tag on the bubble chart the tooltip on the sub communities is shown, similarly by hovering over a tag on the sub communities the corresponding tag on the bubble chart is selected, therefore there is bidirectional interaction happening between the bubble chart and the sub communities.
+
+\subsection{Rationale}
+One major design decision we considered was whether to include a time slider or a year selector. All the way up to the first prototype we were thinking in terms of selecting periods, using the smallest time unit of months, one could select a start month and end month from the time slider, after the selection the data gets updated and the graph would update showing the tags and its activity for the selected period and similarly to the charts on the side bar.
+One compelling reason to use a time slider is that it gave great flexibility on choosing how many months we were interested in and which ones, however using a time slider came into conflict with another one of our charts, which was the calendar heatmap.
+The calendar heatmap demanded data formatted in fixed range intervals, most commonly it shows a yearly view with a square for each day of the year.
+As we could not meaningfully have variable range intervals on the calendar heatmap, we had to change one of the idioms to consider this.
+We chose to convert the time slider to a year selector which displays the region activity on the background. This had an impact on other idioms as now data was given in a yearly format rather than as a date start and date end. We changed the data to reflect this as well, by aggregating the skills dataset by year, since the communities data was still required in a day to day format for the heatmap we aggregated that dataset by day instead.
+
+The rationale for having a global and local view for the sidebar is that we needed to pack multiple charts into a single space, by using different views we could afford some extra space as some charts disappear and others show up. It all also made sense that besides providing information for each selected tag on the graph, we could also provide information for the whole graph in general to get the bigger picture of the dataset.
+Regarding the votes chart, we could have in fact displayed the upvotes and downvotes metrics on the calendar heatmap instead of having them displayed on a separate chart, we thought they had potential to become their own chart however, besides the extra struggle regarding the alignment issues of aligning the weeks on both the calendar heatmap and the votes chart we believe having it as a separate chart provides a more compelling visualization.
+Regarding the scatter plot, we are using a log scale for both axis, using linear scales would not be compelling since popular tags like JavaScript have very high values for the metrics compared to the other tags, therefore a linear scale would end up with popular tags on the top right corner and all other tags squeezed on the bottom left corner, since the relationship is exponential by nature, by using a log scale we can actually spot linear trends(on the log domain) among metrics.
+The scatter plot can be quite useful to detect correlations and outliers, using a tooltip here was also deemed necessary, otherwise just from the inspection of the data points we could not infer the tag name nor the specific values for the metrics, originally we had an X and Y axis with ticks but after moving the exact values to the tooltip displaying the ticks on the axis was deemed unnecessary and we removed the axis alltogether.
+Regarding the donut charts, it is a fact that humans are not that good at discerning between different radial areas.
+Here however we are not that concerned about the exact proportions, since our goal is to measure in relative terms how strongly two tag co-occur(related communities) or the size of each tag inside its cluster(sub communities), therefore we can perfectly trade some accuracy at telling apart the sizes for the slices for an idiom that answers our visualization needs.
+We have also included a legend with the donut charts because of the problem of discoverability, meaning that we do not know before hand what tag each slice corresponds to.
+Whenever a slice is hovered on the donut chart the corresponding tag is displayed on the tooltip, however as we move the mouse away the tooltip disappears and there is no information left about which slice corresponds to which tag.
+Initially we tried putting labels on the slices, and while it would solve the problem of associating a tag to each slice, the result was not too visually compelling.
+Therefore we decided to add a legend to the graph with the tag name and slice color, the order of the legend follows the order of the donut chart and is ordered by slice area. We have to cut off the legend height after a specified number of tags shown otherwise it would disappear from the side bar.
+This approach is a good compromise because although we display just a subset of the total tags(the ones that can fit in the legend), we no longer have the issues of discoverability while using a visually compelling approach.
+
+Early on in the project we decided a graph structure was a compelling way to visualize the structure of StackOverflow, we were inspired by other work that similarly used a graph structure applied to human languages.
+Using a graph structure also ends up supporting our main tasks, furthermore it helps with the problem of discoverability, meaning if there are dozens or hundreds of tags, how do you discover which ones exist rather than simply looking at a list of tags? By using a graph we can pack structure we can hopefully display that information.
+Initially we were thinking in slightly different terms, we hoped that the distance between tags also encoded meaningful information, essentially if tags were close together they were similar and if they were far away they were less related.
+This proved quite troublesome to implement using a Force Layout diagram, furthermore after discussing this idea with the teacher we then moved away from it.
+Instead we use clusters to aggregate similar tags together, getting similar tags close together therefore happens on the data processing side and not on the running simulation encoded in the distances between tags.
+We believe a meaningful way to show the cluster structure is to use a local view and a global view, whenever a tag is selected we show the local view, showing the tags that belong that that cluster using a bubble chart, the size of the tag on the bubble chart encodes the number of co-occurences that tag has with the tag that forms the cluster.
+The size of the cluster tag on the graph encodes the activity of that tag for the selected region and on the selected year, more active tags will end up being larger on the graph.
+We have manually added icons for the well known tags to improve the user experience, for the tags without icons we chose to display labels over the tag, otherwise it would have hurted understandability if we could not tell from a glance what tag a certain node corresponded to.
+On the latest versions of the project tags without icons became less and less of an issue as we filtered away many tags and kept adding icons to the tags, we might expect that the final version has no tags without icons.
+
+\section{Implementation Details}
+We chose to implement most of the visualizations from scratch, we would look online for D3 examples that accomplished what we wanted to do and copied some of the code to our project, but in the end we always had to adapt the code to fit our purposes which did not match the simple examples provided by D3.js.
+We use D3 events to communicate between charts, whenever something interesting happens in a chart and other charts need to be notified, we create a D3 event that other charts can listen to.
+Data updates are also implemented using D3 events, changing the selected region launches an event that loads the data for the selected region from CSV files to the application, furthermore selecting a year on the year selector has the effect of indexing by year.
+Data change events pass as arguments the new updated data, aggregated by day(as required on the heatmap) and by week(as required on the upvotes/downvotes chart).
+We try to use D3 transitions when possible to provide a pleasing user experience, it allows us to visualize the data gracefully changing from the old data position to the new position instead of simply jumping to that position.
+Implementing bidirectionality for the interaction between the sub communities and bubble chart gave us an interesting problem, since we relied on events for the implementation, meaning that when hovered sub communities would select the relevant tag on the bubble chart and vice versa, we ran into a problem of event recursion when the first event calls the second events which calls again the first event and so on.
+We solved this problem by explicitly detecting event recursion on our code.
+Other issue that took a fair amount of time was standardizing the tooltips across the charts, specifically we had to make sure the tooltips for the calendar heatmap and the votes chart were exactly aligned, we also had to make sure they did not overlap with other UI elements by specifically changing their orientation so that no overlap occurred.
+
+\section{Conclusion and Future Work}
+For this project we have implemented a web app using visualization techniques learnt at the Information Visualization course at IST using StackExchange's public datasets containing all user contributed data for StackOverflow.com.
+One problem we had since early on when explaining people our dataset and visualization purposes is that there is a common perception that purely textual datasets can not lead a good visual experience.
+We realized however that even disregarding the textual contents, there is great potential using solely the associated metada for visualization purposes.
+Metadata is indeed rich in structure and can be used to calculate several derived metrics, perhaps the most known example that uses solely metadata information for textual contents to infer structure and relevance is Google's PageRank algorithm.
+
+Given more time and resources, we would likely scale up our visualization to handle several thousands of tags, even though we are working with huge datasets we had to restrict the problem domain by discarding several tags and clustering some others to reduce the number of tags.
+The major bottlenecks of the process were the processing time to calculate our derived datasets, the laborious process of manually filtering out tags, the derived datasets' sizes and the amount of tags we could fit into the visualization without filling up the display.
+By adding extra resources and applying some optimization strategies we could effectively reduce the development bottleneck for the first 3 problems.
+For the latter problem we would likely need to apply changes to our visualization idioms to be able to effectively visualize hundreds or even thousands of tags.
+In particular using a Force Layout on the front end becomes too expensive as the number of nodes grows, we would either have to calculate it on the back end or use other idioms that use fixed position encoding.
+It would be indeed interesting to see what patterns could be infered from a visualization containing a large number of tags, additionally it would allow us to cluster tags on several levels, ideally the first level cluster would be programming languages, the second level cluster would be features of the language or frameworks for that language, the third level would be framework features and so on.
+A cluster dendogram would be a likely candidate to visualize the hierarchical structure.
+
+Finally if we were to start over we would have still chosen the same dataset as we believe there is great potential in it, we would have instead included the textual contents on our dataset.
+Doing that would allow us to ask more ambitituous questions than we could by only including the metadata.
+We could find out which programming constructs are easy or hard to master for each language based on the textual contents and user activity, as an example for C we would expect if constructs to be easy to master and pointers to be hard to master.
+Following this line of thought, we could automatically cluster posts into its difficulty level based on whether they refer to easy or hard concepts to master.
+Furthermore we could categorize each user as being a novice or a master(with perhaps multiple levels of granularity) based on the difficulty level of posts they engage in.
+There is not as much work devoted to visualizing textual datasets as there is for visualizing numerical data, it is inherently an harder problem to produce visualizations from text that are not simply the straightforward approach of displaying the text on a screen.
+If we were to use the textual contents it would make sense to use data from another excellent public source of programmer trends information which is Github, then we could move to truly ambititous questions such as automatically detecting good coding practices.
+However such a project would have moved out from the scope of the course.
+Ultimately the goals would be the same, which is finding programmer trends over time, but would be tackled in a completely different way.
 
