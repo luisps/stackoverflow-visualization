@@ -6,9 +6,10 @@ const d3bubble = (function () {
     const SHOW_DURATION = 400;
 
     // Private Variables
-    let $dispatcher = d3.dispatch('setRecursion'),
+    let $dispatcher = d3.dispatch('setRecursion', 'click'),
         $node,
         labels,
+        tooltips,
         recursion,
         d3bubble
     ;
@@ -21,6 +22,7 @@ const d3bubble = (function () {
 
     function init() {
         d3bubble = d3.select('#bubble')
+            .attr('transform', 'translate(' + d3zoom.$dimensions().width * 0.25 + ', 0)')
             .append('g');
 
         // Event listeners
@@ -35,11 +37,11 @@ const d3bubble = (function () {
 
     function load(selected) {
 
-        let isVisible = selected && Object.keys(selected.$children).length > 0;
+        let isVisible = selected && Object.keys(selected.$children).length > 1;
         d3bubble.attr('display', isVisible ? 'initial' : 'none');
         if (!isVisible) return;
 
-        console.time('d3bubble.update');
+        //console.time('d3bubble.update');
 
         $node = this;
         let nodeBB = _nodeBB($node);
@@ -59,7 +61,7 @@ const d3bubble = (function () {
         circles.exit().remove();
         circles.enter()
             .append('circle')
-            .attr('class', function(n, i) { return (n.height === 1) ? '' : 'bubble-circle'; })
+            .attr('class', function(n, i) { return (n.height === 1) ? 'bubble-root' : 'bubble-circle'; })
             .attr('fill', function(n, i) { return (n.height === 1) ? 'white' : d3donut.googleColors(i-1); })
             .merge(circles)
             .attr('cx', (n) => n.x)
@@ -68,28 +70,89 @@ const d3bubble = (function () {
         ;
 
         // Update labels
-        labels = d3bubble.selectAll('text').data(nodes);
+        let labelsNodes = nodes.slice(1);
+        tooltips = d3bubble.selectAll('rect').data(labelsNodes);
+        tooltips.exit().remove();
+        tooltips.enter()
+            .append('rect')
+                .attr('fill', 'black')
+                .attr('opacity', '0.75')
+                .attr('class', 'bubble-tooltip')
+            .merge(tooltips)
+                .attr('width', (n) => n.$width = n.data.$tag.length * util.getRem() * 0.125 + 2)
+                .attr('height', util.getRem() * 0.45)
+                .attr('x', (n) => n.x - n.$width / 2)
+                .attr('y', (n) => n.y - util.getRem() * 0.35 / 2)
+                .attr('opacity', (n) => n.r > 5 ? 1 : 0);
+
+        labels = d3bubble.selectAll('text').data(labelsNodes);
         labels.exit().remove();
-        labels.enter().append('text')
+        labels.enter()
+            .append('text')
+                .attr('font-size', 0.25 * util.getRem())
+                .attr('text-anchor', 'middle')
+                .attr('fill', 'white')
+                .attr('class', 'bubble-label')
+            .merge(labels)
+                .attr('x', (n) => n.x)
+                .attr('y', (n) => n.y + util.getRem() * 0.1)
+                .attr('opacity', (n) => n.r > 5 ? 1 : 0)
+                .text((n) => n.data.$tag);
+
+        /*
+        labelsNew.append('rect')
+            .attr('width', (n) => n.data.$tag.length * util.getRem() * 0.25)
+            .attr('height', util.getRem() * 0.35)
+            .attr('x', (n) => n.x)
+            .attr('y', (n) => n.y)
+            .attr('fill', 'black')
+            .attr('opacity', '0.5');
+        labelsNew.append('text')
             .attr('class', function(n, i) { return (n.height === 1) ? '' : 'bubble-label'; })
-            .attr('font-size', 4)
+            .attr('font-size', 0.25 * util.getRem())
             .attr('text-anchor', 'middle')
             .merge(labels)
             .text((n) => n.data.$tag)
             .attr('x', (n) => n.x)
             .attr('y', (n) => n.y)
         ;
+        */
+
+        /*
+        labels = d3bubble.selectAll('text').data(nodes.slice(1));
+        labels.exit().remove();
+        let labelsNew = labels.enter().append('g')
+            labelsNew.append('rect')
+                .attr('width', (n) => n.data.$tag.length * util.getRem() * 0.25)
+                .attr('height', util.getRem() * 0.35)
+                .attr('x', (n) => n.x)
+                .attr('y', (n) => n.y)
+                .attr('fill', 'black')
+                .attr('opacity', '0.5');
+            labelsNew.append('text')
+                .attr('class', function(n, i) { return (n.height === 1) ? '' : 'bubble-label'; })
+                .attr('font-size', 0.25 * util.getRem())
+                .attr('text-anchor', 'middle')
+            .merge(labels)
+            .text((n) => n.data.$tag)
+            .attr('x', (n) => n.x)
+            .attr('y', (n) => n.y)
+        ;
+        */
 
         //handle mouse events
         circles = d3bubble.selectAll('.bubble-circle');
         labels = d3bubble.selectAll('.bubble-label');
+        tooltips = d3bubble.selectAll('.bubble-tooltip');
+        d3bubble.select('.bubble-root').on('click', () => $dispatcher.call('click', this)); // So we can zoom out again
 
         recursion = {'mouseenter': false, 'mouseout': false};
-        circles.call(mouseEvents)
+        circles.call(mouseEvents);
 
         // Apply offset to stay on top of the selected node
         _moveTo(nodeBB);
-        console.timeEnd('d3bubble.update');
+
+        //console.timeEnd('d3bubble.update');
     }
 
     function mouseEvents(circles) {
@@ -119,19 +182,18 @@ const d3bubble = (function () {
                 .attr('opacity', 0)
                 ;
 
-            //hovered circle
-            d3.select(this)
-                .attr('opacity', 1)
-                .interrupt('circle-fade')
-                ;
+            tooltips
+                .interrupt('label-show')
+                .transition('label-fade')
+                .duration(FADE_DURATION)
+                .attr('opacity', 0)
+            ;
 
-            var hoveredLabel = labels._groups[0][i];
-            d3.select(hoveredLabel)
-                .attr('opacity', 1)
-                .interrupt('label-fade')
-                ;
+            d3.select(this).attr('opacity', 1).interrupt('circle-fade');                    // hovered circle
+            d3.select(labels._groups[0][i]).attr('opacity', 1).interrupt('label-fade');     // hovered label
+            d3.select(tooltips._groups[0][i]).attr('opacity', 1).interrupt('label-fade');   // hovered tooltip
 
-            //donut chart interaction
+            // donut chart interaction
             recursion.mouseenter = true;
             d3.select('#donut-sub .slice:nth-of-type('+(i+1)+')').dispatch('mouseenter');
 
@@ -160,8 +222,15 @@ const d3bubble = (function () {
                 .interrupt('label-fade')
                 .transition('label-show')
                 .duration(SHOW_DURATION)
-                .attr('opacity', 1)
+                .attr('opacity', (n) => n.r > 5 ? 1 : 0)
                 ;
+
+            tooltips
+                .interrupt('label-fade')
+                .transition('label-show')
+                .duration(SHOW_DURATION)
+                .attr('opacity', (n) => n.r > 5 ? 1 : 0)
+            ;
 
             //donut chart interaction
             recursion.mouseout = true;

@@ -7,16 +7,34 @@
     height: 52px;
 }
 
+#region {
+    text-transform: lowercase;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+#region-dropdown img {
+    margin-right: 8px;
+}
+#region-dropdown .mdl-menu__item.selected {
+    display: none;
+}
+
 /* Sidebar */
 #sidebar {
     position: absolute;
-    left: 0.8rem;
-    top: 4rem;
+    left: 1rem;
+    top: calc(50% - 43.15rem / 2);
  	width: 45%;
     min-width: 32rem;
     padding: 0.8rem;
     background: white;
     overflow: initial;
+}
+#sidebar > svg {
+    width: 100%;
 }
 #sidebar > .icon {
     width: 6rem;
@@ -24,7 +42,7 @@
     margin: -4rem auto 0;
     background-size: contain;
     border-radius: 50%;
-    border: 6px solid #F48024;
+    border: 6px solid white;
 }
 #sidebar > .tag {
     width: 100%;

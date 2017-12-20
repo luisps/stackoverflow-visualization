@@ -1,6 +1,6 @@
 -- Community :: 1. Posts by CreationDate, PostId, Tags
-DROP TABLE IF EXISTS community_1_posts_by_creationdate_postid_tags;
-CREATE TABLE community_1_posts_by_creationdate_postid_tags AS
+--DROP TABLE IF EXISTS community_1_posts_by_creationdate_postid_tags;
+CREATE TABLE IF NOT EXISTS community_1_posts_by_creationdate_postid_tags AS
     SELECT
 		"year"							,
 		"month"							,
@@ -43,8 +43,8 @@ CREATE TABLE community_1_posts_by_creationdate_postid_tags AS
 ;
 
 -- Community :: 2. Votes by CreationDate, PostId
-DROP TABLE IF EXISTS community_2_votes_by_creationdate_postid;
-CREATE TABLE community_2_votes_by_creationdate_postid AS
+--DROP TABLE IF EXISTS community_2_votes_by_creationdate_postid;
+CREATE TABLE IF NOT EXISTS community_2_votes_by_creationdate_postid AS
     SELECT
         DATE_PART('YEAR', creationdate)  "year",
         DATE_PART('MONTH', creationdate) "month",
@@ -73,8 +73,8 @@ CREATE TABLE community_2_votes_by_creationdate_postid AS
 ;
 
 -- Community :: 3. Posts, Votes merged
-DROP TABLE IF EXISTS community_3_posts_votes_merged;
-CREATE TABLE community_3_posts_votes_merged AS
+--DROP TABLE IF EXISTS community_3_posts_votes_merged;
+CREATE TABLE IF NOT EXISTS community_3_posts_votes_merged AS
     SELECT
         posts."year",
         posts."month",
@@ -142,9 +142,15 @@ FROM
     FROM
         tmp_community
     GROUP BY tag) res
-WHERE
-     activity > 0.00005 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community);
-
+WHERE 1=1
+    AND NOT tag ~ '[^[:ascii:]]' -- Filter ascii-only tags
+    -- Filter irrelevant tags. Higher number -> filters more -> more clusters
+    --AND activity > 0.00030 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community); -- es.stackoverflow.com (541)
+    --AND activity > 0.00045 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community); -- ja.stackoverflow.com
+    AND activity > 0.00030 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community); -- pt.stackoverflow.com
+    --AND activity > 0.00050 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community); -- ru.stackoverflow.com
+    --AND activity > 0.00060 * (SELECT SUM(answercount + commentcount + questioncount + upvotes + downvotes + offensivevotes) FROM tmp_community); -- en.stackoverflow.com
+    
 CREATE INDEX tags_tag_ids ON tags("tag");
 
 -- Community :: 4. Final Output - filtered with no banned tags (2/2)

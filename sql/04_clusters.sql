@@ -81,23 +81,163 @@ BEGIN
 	
 END $$;
 
--- Clusters :: Hotfix - fix some specific clusters
-UPDATE clusters SET "cluster"='asp.net' WHERE "cluster"='asp.net-mvc';
-UPDATE clusters SET "cluster"='asp.net' WHERE "cluster"='asp.net-mvc-5';
-UPDATE clusters SET "cluster"='css' WHERE "cluster"='css3';
-UPDATE clusters SET "cluster"='html' WHERE "cluster"='html5';
-UPDATE clusters SET "cluster"='java' WHERE "cluster"='jsf';
-UPDATE clusters SET "cluster"='java' WHERE "cluster"='jsp';
-UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='angularjs';
-UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='angularjs-2.0';
-UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='ionic';
-UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='jquery';
-UPDATE clusters SET "cluster"='javascript' WHERE "cluster"='typescript';
-UPDATE clusters SET "cluster"='laravel' WHERE "cluster"='laravel-5';
-UPDATE clusters SET "cluster"='mysql' WHERE "cluster"='mysqli';
-UPDATE clusters SET "cluster"='php' WHERE "cluster"='codeigniter';
-UPDATE clusters SET "cluster"='python' WHERE "cluster"='python-3.x';
-UPDATE clusters SET "cluster"='visual-studio' WHERE "cluster"='visual-studio-2015';
-UPDATE clusters SET "cluster"='windows' WHERE "cluster"='windows-forms';
+-- Clusters :: Hotfix - merge clusters about different versions of the same tech
+WITH clusters_with_version AS (
+    SELECT
+        "cluster",
+        '-' || "version" "version"
+    FROM
+        (SELECT
+            "cluster",
+            REVERSE(SUBSTRING(REVERSE("cluster") FROM 0 FOR POSITION('-' IN REVERSE("cluster")))) "version"
+        FROM clusters) res
+    WHERE "version" SIMILAR TO '[0-9.x]+'
+)
+UPDATE clusters
+SET   "cluster"=REPLACE(clusters."cluster", "version", '')
+FROM  clusters_with_version
+WHERE clusters."cluster"=clusters_with_version."cluster";
 
-SELECT DISTINCT("cluster") FROM clusters ORDER BY "cluster";
+-- Clusters :: Hotfix - associate tags about different versions of the same tech to the correct cluster
+WITH tags_with_version AS (
+    SELECT
+        tag,
+        '-' || "version" "version"
+    FROM
+        (SELECT
+            tag,
+            REVERSE(SUBSTRING(REVERSE(tag) FROM 0 FOR POSITION('-' IN REVERSE(tag)))) "version"
+        FROM clusters) res
+    WHERE "version" SIMILAR TO '[0-9.x]+'
+)
+UPDATE clusters
+SET   "cluster"=REPLACE(clusters.tag, "version", '')
+FROM  tags_with_version
+WHERE clusters.tag=tags_with_version.tag;
+
+-- Clusters :: Hotfix - fix some specific aliases
+UPDATE clusters SET tag='nodejs' WHERE tag='node.js';
+UPDATE clusters SET "cluster"='nodejs' WHERE "cluster"='node.js';
+
+-- Clusters :: Hotfix - fix some specific clusters
+DROP TABLE IF EXISTS tmp_hotfix_clusters;
+CREATE TABLE tmp_hotfix_clusters (
+    tag VARCHAR(255),
+    "cluster" VARCHAR(255)
+);
+
+INSERT INTO tmp_hotfix_clusters ("cluster", tag) VALUES
+    ('.net', '.net'),
+    ('.net', 'entity-framework'),
+    ('.net', 'linq'),
+    ('.net', 'wcf'),
+    ('.net', 'wpf'),
+    ('.net', 'windows-forms'),
+    ('.net', 'winforms'),
+    ('android', 'android'),
+    ('android', 'android-layout'),
+    ('android', 'android-studio'),
+    ('asp.net', 'asp'),
+    ('asp.net', 'asp.net-mvc'),
+    ('asp.net', 'asp.net-web-api'),
+    ('asp.net', 'razor'),
+    ('c', 'c'),
+    ('c++', 'c++'),
+    ('css', 'css'),
+    ('css', 'bootstrap'),
+    ('css', 'twitter-bootstrap'),
+    ('css', 'css3'),
+    ('facebook', 'facebook'),
+    ('git', 'github'),
+    ('html', 'firefox'),
+    ('html', 'html'),
+    ('html', 'google-chrome'),
+    ('html', 'internet-explorer'),
+    ('html', 'html5'),
+    ('ios', 'ios'),
+    ('ios', 'iphone'),
+    ('ios', 'objective-c'),
+    ('java', 'java'),
+    ('java', 'eclipse'),
+    ('java', 'gradle'),
+    ('java', 'hibernate'),
+    ('java', 'jsf'),
+    ('java', 'jsp'),
+    ('java', 'netbeans'),
+    ('java', 'servlets'),
+    ('java', 'spring'),
+    ('java', 'swing'),
+    ('javascript', 'javascript'),
+    ('javascript', 'angular'),
+    ('javascript', 'angularjs'),
+    ('javascript', 'cordova'),
+    ('javascript', 'ionic'),
+    ('javascript', 'jquery'),
+    ('javascript', 'jquery-datatables'),
+    ('javascript', 'jquery-ui'),
+    ('javascript', 'reactjs'),
+    ('javascript', 'selenium'),
+    ('javascript', 'typescript'),
+    ('linux', 'linux'),
+    ('linux', 'centos'),
+    ('linux', 'bash'),
+    ('linux', 'ubuntu'),
+    ('linux', 'unix'),
+    ('linux', 'vim'),
+    ('linux', 'zsh'),
+    ('mongodb', 'mongodb'),
+    ('mysql', 'mysql'),
+    ('mysql', 'mysqli'),
+    ('nodejs', 'nodejs'),
+    ('nodejs', 'express'),
+    ('nodejs', 'npm'),
+    --('node.js', 'node.js'),
+    --('node.js', 'npm'),
+    ('oracle', 'oracle'),
+    ('oracle', 'oracle-11g'),
+    ('osx', 'osx'),
+    ('os-x', 'os-x'),
+    ('php', 'php'),
+    ('php', 'codeigniter'),
+    ('php', 'joomla'),
+    ('php', 'phpmailer'),
+    ('php', 'phpmyadmin'),
+    ('php', 'primefaces'),
+    ('php', 'yii'),
+    ('php', 'yii2'),
+    ('postgresql', 'postgresql'),
+    ('postgresql', 'plsql'),
+    ('ruby-on-rails', 'ruby-on-rails'),
+    ('ruby-on-rails', 'rails-activerecord'),
+    ('ruby-on-rails', 'ruby'),
+    ('sql-server', 'tsql'),
+    ('swift', 'swift'),
+    ('swift', 'swift2'),
+    ('swift', 'swift3'),
+    ('swift', 'uicollectionview'),
+    ('swift', 'uicollectionviewcell'),
+    ('swift', 'uilabel'),
+    ('swift', 'uiimage'),
+    ('swift', 'uikit'),
+    ('swift', 'uiscrollview'),
+    ('unity3d', 'unity3d'),
+    ('vb', 'vb6'),
+    ('vb', 'vba'),
+    ('vb', 'vb.net'),
+    ('windows', 'winapi'),
+    ('windows', 'windows10'),
+    ('wordpress', 'wordpress-theme'),
+    ('xamarin', 'xamarin'),
+    ('xamarin', 'xamarin.forms'),
+    ('xcode', 'xcode'),
+    ('xcode', 'xcode6'),
+    ('xcode', 'xcode7'),
+    ('xcode', 'xib'),
+    ('xml', 'xpath')
+;
+
+UPDATE clusters SET "cluster"=hotfix."cluster" FROM tmp_hotfix_clusters hotfix WHERE clusters."cluster"=hotfix.tag;
+UPDATE clusters SET "cluster"=hotfix."cluster" FROM tmp_hotfix_clusters hotfix WHERE clusters.tag=hotfix.tag;
+
+SELECT "cluster", COUNT(*) FROM clusters GROUP BY "cluster" ORDER BY "cluster";
+SELECT * FROM clusters ORDER BY "cluster";

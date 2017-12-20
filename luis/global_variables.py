@@ -14,13 +14,13 @@ db_name_prefix = 'stackoverflow_'  # region gets appended to the end
 if len(sys.argv) > 1:
     region = sys.argv[1]
 
-xml_files_dir = os.path.join('..', '..', region + '.stackoverflow.com')
+xml_files_dir = os.path.join('..', 'data', region + '.stackoverflow.com')
 #xml_files_dir = '.'  # use this if this script is on the same folder as xml files
 
 #database connector information
-host = '127.0.0.1'
-user = 'root'
-passwd = 'root'
+host = 'localhost'
+user = 'postgres'
+passwd = 'postgres'
 db_name = db_name_prefix + region if sys.argv[0] != 'create_dbs.py' else 'postgres'
 
 connect_str = "dbname='%s' host='%s' user='%s' password='%s'" % (db_name, host, user, passwd)

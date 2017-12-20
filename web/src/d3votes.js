@@ -2,6 +2,7 @@ const d3votes = (function () {
 
     // Constants
     const FORMAT_WEEK = d3.timeFormat('%V');
+    const FORMAT_NUMBER = (n) => n > 1000 ? (Math.floor(n / 100) / 10) + 'k' : n;
 
     // Variables
     let $dispatcher = d3.dispatch('tooltip'),
@@ -42,7 +43,7 @@ const d3votes = (function () {
     }
 
     function load(data) {
-        console.time('votes.load');
+        //console.time('votes.load');
         $nodes = data.nodesByWeek;
         $nodeWidth = d3svgDimensions.width / data.weeks.length;
 
@@ -73,7 +74,7 @@ const d3votes = (function () {
             .attr('y', d3svgDimensions.height / 2)
             .attr('height', (n) => yScaleDownvote(n.downvotes));
 
-        console.timeEnd('votes.load');
+        //console.timeEnd('votes.load');
     }
 
     function update(e, x, y, isActive, isInverted) {
@@ -98,8 +99,8 @@ const d3votes = (function () {
 
             // Update data
             d3tooltip.select('thead td').text('Week ' + FORMAT_WEEK(node.$date));
-            d3tooltip.select('.downvotes').text(node.downvotes);
-            d3tooltip.select('.upvotes').text(node.upvotes);
+            d3tooltip.select('.downvotes').text(FORMAT_NUMBER(node.downvotes));
+            d3tooltip.select('.upvotes').text(FORMAT_NUMBER(node.upvotes));
 
             tooltip.classList.add('is-active');
             d3tooltip.attr('transform', 'translate(' + x + ',' + (d3svgDimensions.height - d3tooltipDimensions.height) / 2 + ')');

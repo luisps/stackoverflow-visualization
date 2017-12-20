@@ -9,12 +9,13 @@
     <script	src="libs/d3.v4.min.js" charset="utf-8"></script>
 
     <!-- Material Design Lite -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:200,400,800" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons:400,800" rel="stylesheet">
+    <link href="css/opensans.css" rel="stylesheet">
+    <link href="css/material-icons.css" rel="stylesheet">
     <link href="libs/mdl/material.orange-amber.min.css" rel="stylesheet">
     <script src="libs/mdl/material.min.js"></script>
 
     <!-- Source -->
+    <link href= "css/d3bubble.css" rel="stylesheet">
     <link href= "css/d3donut.css" rel="stylesheet">
     <link href= "css/d3heatmap.css" rel="stylesheet">
     <link href= "css/d3scatter.css" rel="stylesheet">
@@ -26,6 +27,7 @@
     <script	src="src/d3donut.js" charset="utf-8"></script>
     <script	src="src/d3graph.js" charset="utf-8"></script>
     <script	src="src/d3heatmap.js" charset="utf-8"></script>
+    <script	src="src/d3region.js" charset="utf-8"></script>
     <script	src="src/d3scatter.js" charset="utf-8"></script>
     <script	src="src/d3sidebar.js" charset="utf-8"></script>
     <script	src="src/d3time.js" charset="utf-8"></script>
@@ -49,17 +51,17 @@
                 <g class="focus"></g>
             </svg>
             <!-- Right aligned menu below button -->
-            <button id="demo-menu-lower-right"
-                    class="mdl-button mdl-js-button mdl-button--icon">
-                <i class="material-icons">more_vert</i>
-            </button>
-            <ul class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect"
-                for="demo-menu-lower-right">
-                <li class="mdl-menu__item"><img src="img/flag_international.png" height="16" />&nbsp;&nbsp;stackoverflow.com</li>
-                <li class="mdl-menu__item"><img src="img/flag_spain.png" height="16" />&nbsp;&nbsp;es.stackoverflow.com</li>
-                <li class="mdl-menu__item"><img src="img/flag_japan.png" height="16" />&nbsp;&nbsp;ja.stackoverflow.com</li>
-                <li class="mdl-menu__item"><img src="img/flag_brazil.png" height="16" />&nbsp;&nbsp;pt.stackoverflow.com</li>
-                <li class="mdl-menu__item"><img src="img/flag_russia.png" height="16" />&nbsp;&nbsp;ru.stackoverflow.com</li>
+            <div id="region" class="mdl-button mdl-js-button">
+                <img src="img/flags/international.png" height="16" style="margin: 0 4px;" />
+                <span>es.stackoverflow.com</span>
+                <i class="material-icons">arrow_drop_down</i>
+            </div>
+            <ul id="region-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect" for="region">
+                <li class="mdl-menu__item"><img src="img/flags/international.png" height="16" />stackoverflow.com</li>
+                <li class="mdl-menu__item"><img src="img/flags/spain.png" height="16" />es.stackoverflow.com</li>
+                <li class="mdl-menu__item"><img src="img/flags/japan.png" height="16" />ja.stackoverflow.com</li>
+                <li class="mdl-menu__item selected"><img src="img/flags/brazil.png" height="16" />pt.stackoverflow.com</li>
+                <li class="mdl-menu__item"><img src="img/flags/russia.png" height="16" />ru.stackoverflow.com</li>
             </ul>
         </div>
     </header>
@@ -217,8 +219,10 @@
                     <feMergeNode in="SourceGraphic"></feMergeNode> <!-- this contains the element that the filter is applied to -->
                 </feMerge>
             </filter>
-            <g id="graph"></g>
-            <g id="bubble"></g>
+            <g id="zoomable">
+                <g id="graph"></g>
+                <g id="bubble"></g>
+            </g>
         </svg>
     </main>
 </div>

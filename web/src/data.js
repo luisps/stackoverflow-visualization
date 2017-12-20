@@ -18,32 +18,40 @@ const data = (function () {
 
     return {
         $dispatcher,
-        load,
+        init,
         nodesByTagByDay,
         nodesByTagByWeek
     };
 
-    function load(region) {
+    function init() {
+        // Event listeners
+        d3region.$dispatcher.on('click.data', load);
+    }
+
+    function load(data) {
+        let region = data.region.substr(0, this.innerText.indexOf('.'));
+            region = region === 'stackoverflow' ? 'en' : region;
+
         d3.csv(PATH_ICONS, (data) => {
-            console.time('data.load.icons');
+            //console.time('data.load.icons');
             iconsLoad(data);
-            console.timeEnd('data.load.icons');
+            //console.timeEnd('data.load.icons');
 
             $dispatcher.call('icons', this, { icons: $icons });
             d3.csv(PATH_CLUSTERS.replace('{region}', region), (data) => {
-                console.time('data.load.$clusters');
+                //console.time('data.load.$clusters');
                 clustersLoad(data);
-                console.timeEnd('data.load.$clusters');
+                //console.timeEnd('data.load.$clusters');
 
                 d3.csv(PATH_COMMUNITY.replace('{region}', region), (data) => {
-                    console.time('data.load.community');
+                    //console.time('data.load.community');
                     nodesLoad(data);
-                    console.timeEnd('data.load.community');
+                    //console.timeEnd('data.load.community');
 
                     d3.csv(PATH_SKILLS.replace('{region}', region), (data) => {
-                        console.time('data.load.skills');
+                        //console.time('data.load.skills');
                         linksLoad(data);
-                        console.timeEnd('data.load.skills');
+                        //console.timeEnd('data.load.skills');
 
                         $dispatcher.call('load', this, { dateMin: $dateMin, dateMax: $dateMax, nodesByWeek: nodesByTagByWeek(null, null) });
                     });
@@ -56,7 +64,7 @@ const data = (function () {
     }
 
     function update(year) {
-        console.time('data.update');
+        //console.time('data.update');
 
         let nodes = nodesByYear(year),
             links = linksByYear(year)
@@ -80,7 +88,7 @@ const data = (function () {
             linksByYear: links
         });
 
-        console.timeEnd('data.update');
+        //console.timeEnd('data.update');
     }
 
     function clustersLoad(data) {
@@ -132,7 +140,8 @@ const data = (function () {
             tag1,
             tag2,
             value,
-            rank: rank1 < rank2 ? rank1 : rank2,
+            rankMin: rank1 < rank2 ? rank1 : rank2,
+            rankMax: rank1 < rank2 ? rank2 : rank1,
             rank1,
             rank2
         };
@@ -203,7 +212,7 @@ const data = (function () {
         }
     }
     function nodesByTagByDay(year, tag) {
-        console.time('data.nodesByTagByDay(' + year + ',' + tag + ')');
+        //console.time('data.nodesByTagByDay(' + year + ',' + tag + ')');
 
         let nodesByMonth, nodesByDay;
         let result = [],
@@ -224,11 +233,11 @@ const data = (function () {
             });
         });
 
-        console.timeEnd('data.nodesByTagByDay(' + year + ',' + tag + ')');
+        //console.timeEnd('data.nodesByTagByDay(' + year + ',' + tag + ')');
         return result;
     }
     function nodesByTagByWeek(year, tag) {
-        console.time('data.nodesByTagByWeek(' + year + ',' + tag + ')');
+        //console.time('data.nodesByTagByWeek(' + year + ',' + tag + ')');
 
         let nodesByMonth, nodesByDay;
         let result = [],
@@ -257,11 +266,11 @@ const data = (function () {
             });
         });
 
-        console.timeEnd('data.nodesByTagByWeek(' + year + ',' + tag + ')');
+        //console.timeEnd('data.nodesByTagByWeek(' + year + ',' + tag + ')');
         return result;
     }
     function nodesByYear(year) {
-        console.time('data.nodesByYear(' + year + ')');
+        //console.time('data.nodesByYear(' + year + ')');
 
         let nodesByYear, nodesByMonth, nodesByDay;
         let result = {};
@@ -277,7 +286,7 @@ const data = (function () {
             })
         });
 
-        console.timeEnd('data.nodesByYear(' + year + ')');
+        //console.timeEnd('data.nodesByYear(' + year + ')');
         return result;
     }
 

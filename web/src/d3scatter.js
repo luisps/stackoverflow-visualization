@@ -2,7 +2,8 @@ const d3scatter = (function () {
 
     // Constants
     const CHART_MARGIN_BOTTOM = 32;
-    const CHART_PADDING = 8;
+    const CHART_PADDING = 12;
+    const FORMAT_NUMBER = (n) => n > 1000 ? (Math.floor(n / 100) / 10) + 'k' : n;
     const METRICS = [
         {
             x: 'answercount',
@@ -81,14 +82,14 @@ const d3scatter = (function () {
     }
 
     function load(data) {
-        console.time('d3scatter.load');
+        //console.time('d3scatter.load');
 
         $nodes = data.nodesByYear;
-        if ($nodes === null) return console.timeEnd('d3scatter.load'); // scatter is not available when a tag is selected
+        if ($nodes === null) return //console.timeEnd('d3scatter.load'); // scatter is not available when a tag is selected
 
         update();
 
-        console.timeEnd('d3scatter.load');
+        //console.timeEnd('d3scatter.load');
     }
 
     function update() {
@@ -141,9 +142,9 @@ const d3scatter = (function () {
         // Update data
         d3tooltip.select('thead td').text(node.$tag);
         d3tooltip.select('.x-label').text($metric.xLabel);
-        d3tooltip.select('.x-value').text(node[$metric.x]);
+        d3tooltip.select('.x-value').text(FORMAT_NUMBER(node[$metric.x]));
         d3tooltip.select('.y-label').text($metric.yLabel);
-        d3tooltip.select('.y-value').text(node[$metric.y]);
+        d3tooltip.select('.y-value').text(FORMAT_NUMBER(node[$metric.y]));
 
         e.type === 'mouseover' ? tooltip.classList.add('is-active') : tooltip.classList.remove('is-active');
         d3tooltip

@@ -2,7 +2,7 @@ const d3zoom = (function () {
 
     // Constants
     const ZOOM_DURATION = 200;
-    const ZOOM_MIN = 1;
+    const ZOOM_MIN = 1.2;
     const ZOOM_MAX = 16;
 
     // Variables
@@ -30,17 +30,20 @@ const d3zoom = (function () {
                 let duration = d3.event.transform.k !== d3zoomTransform.k ? ZOOM_DURATION : 0;
                 d3zoomTransform = d3.event.transform;
 
-                d3.select('#bubble').transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
-                d3.select('#graph').transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
+                //d3.select('#bubble').transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
+                d3.select('#zoomable').transition().ease(d3.easeLinear).duration(duration).attr('transform', d3.event.transform);
             })
         ;
         d3svg.call(d3zoom);
+
+        // Start at the minimum zoom
+        zoomReset();
     }
 
     // https://bl.ocks.org/iamkevinv/0a24e9126cd2fa6b283c6f2d774b69a2
     function zoomTo(boundingBox, percentage) {
         let scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, percentage / Math.max(boundingBox.width / d3svgDimensions.width, boundingBox.height / d3svgDimensions.height))),
-            translateX = d3svgDimensions.width / 2 - scale * boundingBox.x,
+            translateX = (d3svgDimensions.width * 0.75 - scale * (boundingBox.x + d3svgDimensions.width * 0.25)),
             translateY = d3svgDimensions.height / 2 - scale * boundingBox.y
         ;
 
@@ -50,9 +53,8 @@ const d3zoom = (function () {
     }
 
     function zoomReset() {
-        d3svg.transition()
-            .duration(ZOOM_DURATION)
-            .call(d3zoom.transform, d3.zoomIdentity);
+        // We have to use this in order to satisfy the ZOOM_MINIMUM and MAXIMUM constraints
+        zoomTo({ x: d3svgDimensions.width / 2, y: d3svgDimensions.height / 2, width: 100, height: 100 }, 0.01);
     }
 
 }());

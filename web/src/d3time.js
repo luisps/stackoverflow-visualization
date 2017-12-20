@@ -49,7 +49,7 @@ const d3time = (function () {
     }
 
     function load(data) {
-        console.time('d3time.load');
+        //console.time('d3time.load');
 
         let yearsNum = data.dateMax.getFullYear() - data.dateMin.getFullYear() + 1,
             years = Array.from(Array(yearsNum).keys()).map((y) => y + data.dateMin.getFullYear());
@@ -87,7 +87,7 @@ const d3time = (function () {
         // Select last year by default
         onClick(years[yearsNum - 1]);
 
-        console.timeEnd('d3time.load');
+        //console.timeEnd('d3time.load');
     }
 
     function onClick(y) {

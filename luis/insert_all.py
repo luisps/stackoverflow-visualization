@@ -2,7 +2,7 @@ import subprocess
 
 creating_dbs = True
 #regions = ['es', 'pt', 'ru', 'ja']
-regions = ['es']  #en is the big boy, should run separately
+regions = ['en']  #en is the big boy, should run separately
 
 #if creating_dbs:
 #    subprocess.run(['python3', 'create_dbs.py'])

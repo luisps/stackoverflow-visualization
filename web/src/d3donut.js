@@ -313,19 +313,19 @@ const d3donut = (function () {
     function toolTip(selection, svg, colorScale) {
 
         selection.on('mouseenter', function (d, i) {
-                
-            svg.append('text')
-                .attr('class', 'toolCircle')
-                .attr('dy', -0)
-                .html(toolTipHTML(d))
-                .style('font-size', '.7em')
-                .style('text-anchor', 'middle');
 
             svg.append('circle')
                 .attr('class', 'toolCircle')
                 .attr('r', innerRadius * 0.95)
-                .style('fill', colorScale(d.data, i))
-                .style('fill-opacity', 0.35);
+                .attr('fill', colorScale(d.data, i))
+                .attr('opacity', 1);
+
+            svg.append('text')
+                .attr('class', 'toolCircle')
+                .attr('dy', -0)
+                .html(toolTipHTML(d))
+                .attr('fill', 'white')
+                .attr('text-anchor', 'middle');
 
         });
 
@@ -338,8 +338,10 @@ const d3donut = (function () {
 
     function toolTipHTML(d) {
         html = '';
-        html += '<tspan x="0" font-weight="bold">' + d.data.tag  + '</tspan>';
-        html += '<tspan x="0" dy="1.2em">' + d.data.value.toFixed(2)  + ' %</tspan>';
+        html += '<tspan x="0" dy="-0.5em" style="font-weight: bold; font-size: 1rem;">' + d.data.tag + '</tspan>';
+        html += '<tspan x="0" dy="1.2em" style="font-size: 1.5rem;">' + d.data.value.toFixed(2) + ' %</tspan>';
+        //html += '<tspan x="0" font-weight="bold">' + d.data.tag  + '</tspan>';
+        //html += '<tspan x="0" dy="1.2em">' + d.data.value.toFixed(2)  + ' %</tspan>';
 
         return html
     }

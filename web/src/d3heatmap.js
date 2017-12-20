@@ -3,6 +3,7 @@ const d3heatmap = (function () {
     // Constants
     const FORMAT_DAY = d3.timeFormat('%B %d');
     const FORMAT_WEEK = d3.timeFormat('%V');
+    const FORMAT_NUMBER = (n) => n > 1000 ? (Math.floor(n / 100) / 10) + 'k' : n;
     const NODE_OPACITY = (n) => {
         let a = n.answercount + n.commentcount + n.questioncount;
         return a > 0 ? opacityScale(a) : 0;
@@ -45,7 +46,7 @@ const d3heatmap = (function () {
         opacityScale = d3.scaleLinear().range([0.1, 1]);
 
         // Initialize tooltip
-        d3tooltip = d3svg.select('.tooltip').attr('width', util.getRem() * 20);
+        d3tooltip = d3svg.select('.tooltip').attr('width', util.getRem() * 21);
         d3tooltipDimensions = d3tooltip.node().getBoundingClientRect();
 
         // Event Listeners
@@ -60,7 +61,7 @@ const d3heatmap = (function () {
     }
 
     function load(data) {
-        console.time('d3heatmap.load');
+        //console.time('d3heatmap.load');
         $nodes = data.nodesByDay;
         $nodesByWeek = data.nodesByWeek;
         $nodeWidth = d3svgDimensions.width / data.weeks.length;
@@ -76,7 +77,7 @@ const d3heatmap = (function () {
 
         let dateStart = new Date($nodes[0].$date.getFullYear(), 0, 1),
             dateEnd = new Date($nodes[0].$date.getFullYear(), 11, 31),
-            indexOffset = d3.timeDay.count(dateStart, $nodes[0].$date);
+            indexOffset = dateStart.getDay() + d3.timeDay.count(dateStart, $nodes[0].$date); // Week offset + in case we don't have data since the beginning of the year
 
         xScaleMonth.domain([dateStart, dateEnd]);
         d3svg.select('.axis-month').call(xAxisMonth.ticks(12));
@@ -96,7 +97,7 @@ const d3heatmap = (function () {
             .attr('y', (n, i) => (i + indexOffset) % 7 * $nodeHeight)
             .attr('opacity', NODE_OPACITY);
 
-        console.timeEnd('d3heatmap.load');
+        //console.timeEnd('d3heatmap.load');
     }
 
     function update(e, x, y, isActive, isInverted, isWeekOnly) {
@@ -125,16 +126,16 @@ const d3heatmap = (function () {
             // Update data
             d3tooltip.select('.day').style('transform', isWeekOnly ? 'scale(0)' : '');
             d3tooltip.select('.day thead td').text(FORMAT_DAY(node.$date));
-            d3tooltip.select('.day .answers').text(node.answercount);
-            d3tooltip.select('.day .comments').text(node.commentcount);
-            d3tooltip.select('.day .questions').text(node.questioncount);
+            d3tooltip.select('.day .answers').text(FORMAT_NUMBER(node.answercount));
+            d3tooltip.select('.day .comments').text(FORMAT_NUMBER(node.commentcount));
+            d3tooltip.select('.day .questions').text(FORMAT_NUMBER(node.questioncount));
 
             nodeIndex = Math.floor((nodeIndex + $nodes[0].$date.getDay()) / 7);
             node = $nodesByWeek[nodeIndex];
             d3tooltip.select('.week thead td').text('Week ' + FORMAT_WEEK(node.$date));
-            d3tooltip.select('.week .answers').text(node.answercount);
-            d3tooltip.select('.week .comments').text(node.commentcount);
-            d3tooltip.select('.week .questions').text(node.questioncount);
+            d3tooltip.select('.week .answers').text(FORMAT_NUMBER(node.answercount));
+            d3tooltip.select('.week .comments').text(FORMAT_NUMBER(node.commentcount));
+            d3tooltip.select('.week .questions').text(FORMAT_NUMBER(node.questioncount));
 
             tooltip.classList.add('is-active');
             d3tooltip.attr('transform', 'translate(' + x + ',' + (y + 1.7 * util.getRem()) + ')');

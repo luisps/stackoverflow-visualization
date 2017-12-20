@@ -1,6 +1,6 @@
 -- Skills :: 1. Comments by CreationDate, OwnerUserId, Tags
-DROP TABLE IF EXISTS skills_1_comments_by_creationdate_owneruserid_tags;
-CREATE TABLE skills_1_comments_by_creationdate_owneruserid_tags AS
+--DROP TABLE IF EXISTS skills_1_comments_by_creationdate_owneruserid_tags;
+CREATE TABLE IF NOT EXISTS skills_1_comments_by_creationdate_owneruserid_tags AS
 	SELECT
 		DATE_PART('YEAR', c.creationdate)  	"year",
 	    --DATE_PART('MONTH', c.creationdate) 	"month",
@@ -21,8 +21,8 @@ CREATE TABLE skills_1_comments_by_creationdate_owneruserid_tags AS
 ;
 
 -- Skills :: Posts by CreationDate, OwnerUserId, Tags
-DROP TABLE IF EXISTS skills_2_posts_by_creationdate_owneruserid_tags;
-CREATE TABLE skills_2_posts_by_creationdate_owneruserid_tags AS
+--DROP TABLE IF EXISTS skills_2_posts_by_creationdate_owneruserid_tags;
+CREATE TABLE IF NOT EXISTS skills_2_posts_by_creationdate_owneruserid_tags AS
 	SELECT
 		"year"								,
 		--"month"								,
@@ -61,8 +61,8 @@ CREATE TABLE skills_2_posts_by_creationdate_owneruserid_tags AS
 ;
 
 -- Skills :: Comments + Posts by CreationDate, OwnerUserId, Tag
-DROP TABLE IF EXISTS skills_3_comments_posts_by_creationdate_owneruserid_tag;
-CREATE TABLE skills_3_comments_posts_by_creationdate_owneruserid_tag AS
+--DROP TABLE IF EXISTS skills_3_comments_posts_by_creationdate_owneruserid_tag;
+CREATE TABLE IF NOT EXISTS skills_3_comments_posts_by_creationdate_owneruserid_tag AS
 SELECT 
 	"year"			,
 	--"month"			,
@@ -129,11 +129,15 @@ CREATE TABLE skills AS
                     skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2
                 GROUP BY tag1, tag2) res
             WHERE 1=1
-                -- Filter irrelevant skills
-                AND res."count" > 0.00005 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2)
+                -- Filter irrelevant skills. Higher number -> filters more -> less clusters
+                --AND res."count" > 0.00010 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2) -- es.stackoverflow.com
+                --AND res."count" > 0.00030 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2) -- ja.stackoverflow.com
+                AND res."count" > 0.00015 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2) -- pt.stackoverflow.com
+                --AND res."count" > 0.00020 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2) -- ru.stackoverflow.com
+                --AND res."count" > 0.00015 * (SELECT SUM("count") FROM skills_4_comments_posts_by_creationdate_owneruserid_tag1_tag2) -- en.stackoverflow.com
             ) res
         WHERE 1=1
-            -- At most, 15 skills per tag (both ways)
+            -- At most, 32 skills per tag (both ways)
             AND rank1 <= 32
             AND rank2 <= 32
     )

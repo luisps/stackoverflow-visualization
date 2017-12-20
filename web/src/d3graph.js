@@ -44,7 +44,8 @@ const d3graph = (function () {
     };
 
     function init() {
-        d3graph = d3.select('#graph');
+        d3graph = d3.select('#graph')
+            .attr('transform', 'translate(' + d3zoom.$dimensions().width * 0.25 + ', 0)');
 
         // Simulation
         d3simulation = d3.forceSimulation()
@@ -52,8 +53,8 @@ const d3graph = (function () {
             .force('charge', d3.forceManyBody().strength(-50))
             //.force('link', d3.forceLink().distance((l) => 1 / linksValueScale(l.value) + NODE_RADIUS_MAX * 3).strength((l) => linksValueScale(l.value)))
             .force('link', d3.forceLink()
-                .distance((l) => 1 / linksValueScale(l.value) + NODE_RADIUS_MIN * 2)
-                .strength((l) => linksValueScale(l.value) / l.rank)
+                .distance((l) => 1 / linksValueScale(l.value) + NODE_RADIUS_MAX * 2)
+                .strength((l) => linksValueScale(l.value) / l.rankMin)
                 //.strength((l) => 1 / nodesRadiusScale(Math.max(l.source.radius, l.target.radius)))
             )
             .force('collision', d3.forceCollide().radius((n) => nodesRadiusScale(n.$radius) * 1.25))
@@ -80,13 +81,15 @@ const d3graph = (function () {
         // Event listeners
         data.$dispatcher.on('icons.graph', loadIcons);
         data.$dispatcher.on('update.graph', load);
+        d3bubble.$dispatcher.on('click.graph', () => onNodeClick(null));
+        d3region.$dispatcher.on('click.graph', () => onNodeClick(null));
     }
 
     function load(data) {
-        console.time('d3graph.load');
+        //console.time('d3graph.load');
 
         $links = data.linksByYear;
-        $nodes = data.nodesByYear;
+        $nodes = data.nodesByYear.filter((n) => n.$links !== undefined);
 
         // Update scales
         linksRankScale = d3.scaleLinear()
@@ -163,10 +166,10 @@ const d3graph = (function () {
             .attr('visibility', 'hidden');
         */
 
-        console.timeEnd('d3graph.load');
+        //console.timeEnd('d3graph.load');
     }
     function loadIcons(data) {
-        console.time('d3graph.loadIcons');
+        //console.time('d3graph.loadIcons');
         d3.selectAll('#zoom').select('defs')
             .selectAll('pattern')
             .data(Object.values(data.icons))
@@ -180,11 +183,13 @@ const d3graph = (function () {
                     .attr('width', '256')
                     .attr('xlink:href', (d) => d.url)
         ;
-        console.timeEnd('d3graph.loadIcons');
+        //console.timeEnd('d3graph.loadIcons');
     }
 
     function update() {
-        //console.time('d3graph.update');
+        if ($links === null || $nodes === null) return;
+
+        ////console.time('d3graph.update');
         $links.forEach((l) => {
             let hover = hovered  && (l.source.$tag === hovered.$tag || l.target.$tag === hovered.$tag);
             l.source.$hover = !hovered ? false : l.source.$hover || hover;
@@ -225,11 +230,11 @@ const d3graph = (function () {
         */
 
 
-        //console.timeEnd('d3graph.update');
+        ////console.timeEnd('d3graph.update');
     }
 
     function onNodeClick(n) {
-        selected = selected && selected.$tag === n.$tag ? null : n;
+        selected = (n === null || selected && selected.$tag === n.$tag) ? null : n;
 
         if (selected !== null) {
             // Zoom to node
